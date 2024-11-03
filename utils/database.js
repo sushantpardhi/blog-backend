@@ -1,7 +1,6 @@
-const { default: mongoose } = require("mongoose");
+import mongoose from "mongoose";
 
-// In your database.js file
-exports.databaseConnection = async () => {
+const databaseConnection = async () => {
   try {
     const mongoURI = process.env.MONGOURI;
     await mongoose.connect(mongoURI);
@@ -10,3 +9,5 @@ exports.databaseConnection = async () => {
     console.error("Database connection error:", error);
   }
 };
+
+export default databaseConnection;

@@ -1,7 +1,7 @@
-const userModel = require("../models/userModel");
-const bcrypt = require("bcrypt");
-const tokenSchema = require("../models/token");
-const jwt = require("jsonwebtoken");
+import userModel from "../models/userModel.js";
+import bcrypt from "bcrypt";
+import tokenSchema from "../models/token.js";
+import jwt from "jsonwebtoken";
 
 class UserController {
   constructor() {
@@ -131,4 +131,4 @@ class UserController {
   }
 }
 
-module.exports = UserController;
+export default UserController;

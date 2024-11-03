@@ -1,5 +1,5 @@
-const blogModel = require("../models/blogModel");
-const jwt = require("jsonwebtoken");
+import blogModel from "../models/blogModel.js";
+import jwt from "jsonwebtoken";
 
 class blogController {
   constructor() {
@@ -191,4 +191,4 @@ class blogController {
   }
 }
 
-module.exports = blogController;
+export default blogController;

@@ -1,21 +1,17 @@
-const dotenv = require("dotenv");
+import dotenv from "dotenv";
 dotenv.config();
 
-const express = require("express");
-const cookieParser = require("cookie-parser");
+import express from "express";
+import cookieParser from "cookie-parser";
 
-const { serverConnection } = require("./utils/server");
+import serverConnection from "./utils/server.js";
 
 const app = express();
 app.use(cookieParser());
 app.use(express.json());
 
-const userRoutes = require("./routes/userRoutes");
-const blogRoutes = require("./routes/blogRoutes");
-
-app.get("/", (req, res) => {
-  res.status(200).json("Hello");
-});
+import userRoutes from "./routes/userRoutes.js";
+import blogRoutes from "./routes/blogRoutes.js";
 
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/blog", blogRoutes);

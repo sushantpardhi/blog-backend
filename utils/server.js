@@ -1,6 +1,6 @@
-const { databaseConnection } = require("./database");
+import databaseConnection from "./database.js";
 
-exports.serverConnection = async (app) => {
+const serverConnection = async (app) => {
   try {
     const port = process.env.PORT;
     app.listen(port, () => {
@@ -15,3 +15,5 @@ exports.serverConnection = async (app) => {
     process.exit(1);
   }
 };
+
+export default serverConnection;

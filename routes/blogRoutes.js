@@ -1,6 +1,6 @@
-const express = require("express");
-const verifyToken = require("../middlewares/verifyToken");
-const blogController = require("../controllers/blogController");
+import express from "express";
+import verifyToken from "../middlewares/verifyToken.js";
+import blogController from "../controllers/blogController.js";
 
 const router = express.Router();
 
@@ -14,4 +14,4 @@ router.get("", blog.getBlogById);
 router.get("/search", blog.searchBlogs);
 router.get("/filter", blog.filterBlog);
 
-module.exports = router;
+export default router;
