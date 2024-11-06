@@ -16,6 +16,10 @@ const userSchema = Schema({
     type: String,
     required: true,
   },
+  profilePic: {
+    type: String,
+    default: null,
+  },
 });
 
 userSchema.pre("save", async function (next) {

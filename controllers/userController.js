@@ -2,15 +2,17 @@ import userModel from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import tokenSchema from "../models/token.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 class UserController {
   constructor() {
+    this.getAllUsers = this.getAllUsers.bind(this);
     this.registerController = this.registerController.bind(this);
     this.loginController = this.loginController.bind(this);
     this.logoutController = this.logoutController.bind(this);
     this.currentUser = this.currentUser.bind(this);
     this.generateToken = this.generateToken.bind(this);
-    this.storeInCookie = this.storeInCookie.bind(this);
+    // this.storeInCookie = this.storeInCookie.bind(this);
     this.manageTokenCount = this.manageTokenCount.bind(this);
   }
 
@@ -20,13 +22,12 @@ class UserController {
     });
   }
 
-  async storeInCookie(res, token) {
-    await res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-    });
-  }
+  // async storeInCookie(res, token) {
+  //   await res.cookie("token", token, {
+  //     httpOnly: true,
+  //     secure: true,
+  //   });
+  // }
 
   async manageTokenCount() {
     try {
@@ -44,10 +45,18 @@ class UserController {
     }
   }
 
+  async getAllUsers(req, res) {
+    try {
+      const users = await userModel.find();
+      res.status(200).json(users);
+    } catch (error) {
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
+
   async registerController(req, res) {
     try {
-      const { username, email, password } = req.body;
-      const newUser = new userModel({ username, email, password });
+      const newUser = new userModel(req.body);
       await newUser.save();
       const { password: pwd, ...others } = newUser._doc;
       res
@@ -80,9 +89,8 @@ class UserController {
 
       const { password: pwd, ...others } = user._doc;
       const token = this.generateToken(others);
-      this.storeInCookie(res, token);
 
-      return res.status(200).json({ ...others, token });
+      return res.status(200).json({ user: others, token: token });
     } catch (error) {
       return res.status(500).json({ message: "Login failed", error });
     }
@@ -97,7 +105,7 @@ class UserController {
 
       this.manageTokenCount();
 
-      res.clearCookie("token"); // Clear the token cookie
+      // await res.clearCookie("token");
       return res
         .status(200)
         .json({ message: "Logout successful, token stored in DB" });
@@ -109,24 +117,27 @@ class UserController {
   }
 
   async currentUser(req, res) {
-    const userId = req.user.id;
-
-    if (!userId) {
-      return res.status(400).json({ message: "Please login to access" });
-    }
-
     try {
-      const currentUser = await userModel.findById(userId);
-      if (!currentUser) {
+      const id = req.params.id;
+      console.log("Received user ID:", id); // Add this line to log the received ID
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        console.log("Invalid user ID format:", id); // Add this line to log invalid ID format
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const user = await userModel.findById(id);
+
+      if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const { password, ...others } = currentUser._doc;
-      return res.status(200).json(others);
+      const { password: pwd, ...others } = user._doc;
+
+      res.status(200).json(others);
     } catch (error) {
-      return res
-        .status(500)
-        .json({ message: "Internal server error", error: error.message });
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Server error" });
     }
   }
 }

@@ -6,7 +6,7 @@ const router = express.Router();
 
 const blog = new blogController();
 
-router.post("/publish", verifyToken, blog.publishBlog);
+router.post("/publish", blog.publishBlog);
 router.delete("/delete", verifyToken, blog.deleteBlog);
 router.put("/update", verifyToken, blog.updateBlog);
 router.get("/allblogs", blog.getAllBlogs);

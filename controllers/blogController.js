@@ -14,22 +14,18 @@ class blogController {
 
   async publishBlog(req, res) {
     try {
-      const token = req.cookies.token;
-
-      if (!token) {
-        return res
-          .status(401)
-          .json({ message: "Please login to publish a blog" });
-      }
-
-      const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-      const userId = decodedToken.id;
-
+      // const token = req.cookies.token;
+      // if (!token) {
+      //   return res
+      //     .status(401)
+      //     .json({ message: "Please login to publish a blog" });
+      // }
+      // const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+      // const userId = decodedToken.id;
       const newBlog = new blogModel({
         ...req.body,
-        author: userId,
+        // author: userId,
       });
-
       const savedBlog = await newBlog.save();
       res.status(201).json({ message: "Blog uploaded to db", blog: savedBlog });
     } catch (error) {
