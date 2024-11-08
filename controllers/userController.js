@@ -12,8 +12,9 @@ class UserController {
     this.logoutController = this.logoutController.bind(this);
     this.currentUser = this.currentUser.bind(this);
     this.generateToken = this.generateToken.bind(this);
-    // this.storeInCookie = this.storeInCookie.bind(this);
+    this.storeInCookie = this.storeInCookie.bind(this);
     this.manageTokenCount = this.manageTokenCount.bind(this);
+    this.getToken = this.getToken.bind(this);
   }
 
   generateToken(obj) {
@@ -22,12 +23,12 @@ class UserController {
     });
   }
 
-  // async storeInCookie(res, token) {
-  //   await res.cookie("token", token, {
-  //     httpOnly: true,
-  //     secure: true,
-  //   });
-  // }
+  async storeInCookie(res, token) {
+    await res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+    });
+  }
 
   async manageTokenCount() {
     try {
@@ -37,7 +38,6 @@ class UserController {
         const oldestToken = await tokenSchema.findOne().sort({ createdAt: 1 });
         if (oldestToken) {
           await tokenSchema.deleteOne({ _id: oldestToken._id });
-          // console.log(`Removed oldest token: ${oldestToken.token}`);
         }
       }
     } catch (err) {
@@ -89,6 +89,7 @@ class UserController {
 
       const { password: pwd, ...others } = user._doc;
       const token = this.generateToken(others);
+      await this.storeInCookie(res, token);
 
       return res.status(200).json({ user: others, token: token });
     } catch (error) {
@@ -105,7 +106,7 @@ class UserController {
 
       this.manageTokenCount();
 
-      // await res.clearCookie("token");
+      await res.clearCookie("token");
       return res
         .status(200)
         .json({ message: "Logout successful, token stored in DB" });
@@ -116,28 +117,34 @@ class UserController {
     }
   }
 
-  async currentUser(req, res) {
+  async getToken(req, res) {
     try {
-      const id = req.params.id;
-      console.log("Received user ID:", id); // Add this line to log the received ID
+      const token = req.cookies.token;
+      res.status(200).json({ token: token });
+    } catch (error) {
+      res.status(500).json({ message: "An error occurred", error });
+    }
+  }
 
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-        console.log("Invalid user ID format:", id); // Add this line to log invalid ID format
-        return res.status(400).json({ message: "Invalid user ID" });
-      }
+  async currentUser(req, res) {
+    const token = req.cookies.token;
 
-      const user = await userModel.findById(id);
+    if (!token) {
+      return res.status(401).json({ message: "User not logged in" });
+    }
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await userModel.findById(decoded.id);
 
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
       const { password: pwd, ...others } = user._doc;
-
-      res.status(200).json(others);
+      return res.status(200).json(others);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Server error" });
+      return res.status(500).json({ message: "An error occurred", error });
     }
   }
 }
