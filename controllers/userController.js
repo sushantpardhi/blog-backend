@@ -1,8 +1,7 @@
 import userModel from "../models/userModel.js";
 import bcrypt from "bcrypt";
-import tokenSchema from "../models/token.js";
+import tokenModel from "../models/token.js";
 import jwt from "jsonwebtoken";
-import mongoose from "mongoose";
 
 class UserController {
   constructor() {
@@ -32,12 +31,12 @@ class UserController {
 
   async manageTokenCount() {
     try {
-      const count = await tokenSchema.countDocuments();
+      const count = await tokenModel.countDocuments();
 
       if (count > 10) {
-        const oldestToken = await tokenSchema.findOne().sort({ createdAt: 1 });
+        const oldestToken = await tokenModel.findOne().sort({ createdAt: 1 });
         if (oldestToken) {
-          await tokenSchema.deleteOne({ _id: oldestToken._id });
+          await tokenModel.deleteOne({ _id: oldestToken._id });
         }
       }
     } catch (err) {
@@ -101,7 +100,7 @@ class UserController {
     const token = req.cookies.token;
 
     try {
-      const newToken = new tokenSchema({ token });
+      const newToken = new tokenModel({ token });
       await newToken.save();
 
       this.manageTokenCount();

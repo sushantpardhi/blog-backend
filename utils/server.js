@@ -1,19 +1,42 @@
 import databaseConnection from "./database.js";
 
 const serverConnection = async (app) => {
-  try {
-    const port = process.env.PORT;
-    app.listen(port, () => {
-      console.log(`Server is running on port : ${port}`);
-    });
-    await databaseConnection();
-  } catch (e) {
-    console.error(
-      "Failed to start server due to database connection error:",
-      e
-    );
-    process.exit(1);
+  const port = process.env.PORT || 5000;
+  app.listen(port, () => {
+    console.log(`Server is running on port : ${port}`);
+  });
+
+  const maxRetries = 5;
+  let retries = 0;
+
+  while (retries < maxRetries) {
+    try {
+      await databaseConnection();
+      console.log("Database connected successfully");
+      break;
+    } catch (e) {
+      retries += 1;
+      console.error(
+        `Failed to connect to database (attempt ${retries} of ${maxRetries}):`,
+        e
+      );
+      if (retries === maxRetries) {
+        console.error("Max retries reached. Exiting...");
+        process.exit(1);
+      }
+      await new Promise((res) => setTimeout(res, 5000));
+    }
   }
 };
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+  process.exit(1);
+});
 
 export default serverConnection;
