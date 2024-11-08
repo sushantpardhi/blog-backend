@@ -20,6 +20,14 @@ const userSchema = new Schema({
     type: String,
     default: null,
   },
+  passwordResetToken: {
+    type: String,
+    default: null,
+  },
+  passwordResetExpires: {
+    type: Date,
+    default: null,
+  },
 });
 
 userSchema.pre("save", async function (next) {

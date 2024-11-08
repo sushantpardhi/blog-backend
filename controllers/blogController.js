@@ -1,17 +1,19 @@
 import blogModel from "../models/blogModel.js";
 
 class BlogController {
-  constructor() {
-    this.publishBlog = this.publishBlog.bind(this);
-    this.deleteBlog = this.deleteBlog.bind(this);
-    this.filterBlog = this.filterBlog.bind(this);
-    this.getAllBlogs = this.getAllBlogs.bind(this);
-    this.getBlogById = this.getBlogById.bind(this);
-    this.searchBlogs = this.searchBlogs.bind(this);
-    this.updateBlog = this.updateBlog.bind(this);
-  }
+  handleError = (res, error, customMessage = "Internal server error") => {
+    if (
+      error.name === "JsonWebTokenError" ||
+      error.name === "TokenExpiredError"
+    ) {
+      return res
+        .status(401)
+        .json({ message: "Invalid or expired token. Please login again." });
+    }
+    res.status(500).json({ message: customMessage, error: error.message });
+  };
 
-  async publishBlog(req, res) {
+  publishBlog = async (req, res) => {
     try {
       const newBlog = new blogModel({
         ...req.body,
@@ -20,21 +22,11 @@ class BlogController {
       const savedBlog = await newBlog.save();
       res.status(201).json({ message: "Blog uploaded to db", blog: savedBlog });
     } catch (error) {
-      if (
-        error.name === "JsonWebTokenError" ||
-        error.name === "TokenExpiredError"
-      ) {
-        return res
-          .status(401)
-          .json({ message: "Invalid or expired token. Please login again." });
-      }
-      res
-        .status(500)
-        .json({ message: "Internal server error", error: error.message });
+      this.handleError(res, error);
     }
-  }
+  };
 
-  async deleteBlog(req, res) {
+  deleteBlog = async (req, res) => {
     try {
       const blogId = req.query.id;
 
@@ -58,13 +50,11 @@ class BlogController {
 
       res.status(200).json({ message: "Blog deleted successfully!" });
     } catch (error) {
-      res
-        .status(500)
-        .json({ message: "Failed to delete blog", error: error.message });
+      this.handleError(res, error, "Failed to delete blog");
     }
-  }
+  };
 
-  async filterBlog(req, res) {
+  filterBlog = async (req, res) => {
     try {
       const { author, tags } = req.query;
 
@@ -82,22 +72,20 @@ class BlogController {
 
       res.status(200).json(blogs);
     } catch (error) {
-      res
-        .status(500)
-        .json({ error: "An error occurred while filtering blogs" });
+      this.handleError(res, error, "An error occurred while filtering blogs");
     }
-  }
+  };
 
-  async getAllBlogs(req, res) {
+  getAllBlogs = async (req, res) => {
     try {
       const blogs = await blogModel.find({});
       res.status(200).json({ blogs });
     } catch (error) {
-      res.status(500).json({ message: "Internal server error", error: error });
+      this.handleError(res, error);
     }
-  }
+  };
 
-  async getBlogById(req, res) {
+  getBlogById = async (req, res) => {
     try {
       const blogId = req.query.id;
 
@@ -109,11 +97,11 @@ class BlogController {
 
       res.status(200).json({ blog });
     } catch (error) {
-      res.status(500).json({ message: "Internal server error", error: error });
+      this.handleError(res, error);
     }
-  }
+  };
 
-  async searchBlogs(req, res) {
+  searchBlogs = async (req, res) => {
     try {
       const { q } = req.query;
       if (!q) {
@@ -129,13 +117,15 @@ class BlogController {
 
       res.status(200).json({ message: "Blogs found", blogs });
     } catch (error) {
-      res
-        .status(500)
-        .json({ error: "An error occurred while searching for blogs" });
+      this.handleError(
+        res,
+        error,
+        "An error occurred while searching for blogs"
+      );
     }
-  }
+  };
 
-  async updateBlog(req, res) {
+  updateBlog = async (req, res) => {
     try {
       const blogId = req.query.id;
 
@@ -170,12 +160,9 @@ class BlogController {
         .status(200)
         .json({ message: "Blog updated successfully", updatedBlog });
     } catch (error) {
-      console.error(error);
-      res
-        .status(500)
-        .json({ message: "Error updating blog", error: error.message });
+      this.handleError(res, error, "Error updating blog");
     }
-  }
+  };
 }
 
 export default BlogController;

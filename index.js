@@ -23,7 +23,6 @@ import blogRoutes from "./routes/blogRoutes.js";
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/blog", blogRoutes);
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send({
