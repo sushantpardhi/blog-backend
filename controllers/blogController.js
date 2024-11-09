@@ -1,19 +1,7 @@
 import blogModel from "../models/blogModel.js";
 
 class BlogController {
-  handleError = (res, error, customMessage = "Internal server error") => {
-    if (
-      error.name === "JsonWebTokenError" ||
-      error.name === "TokenExpiredError"
-    ) {
-      return res
-        .status(401)
-        .json({ message: "Invalid or expired token. Please login again." });
-    }
-    res.status(500).json({ message: customMessage, error: error.message });
-  };
-
-  publishBlog = async (req, res) => {
+  publishBlog = async (req, res, next) => {
     try {
       const newBlog = new blogModel({
         ...req.body,
@@ -22,11 +10,11 @@ class BlogController {
       const savedBlog = await newBlog.save();
       res.status(201).json({ message: "Blog uploaded to db", blog: savedBlog });
     } catch (error) {
-      this.handleError(res, error);
+      next(error);
     }
   };
 
-  deleteBlog = async (req, res) => {
+  deleteBlog = async (req, res, next) => {
     try {
       const blogId = req.query.id;
 
@@ -50,11 +38,11 @@ class BlogController {
 
       res.status(200).json({ message: "Blog deleted successfully!" });
     } catch (error) {
-      this.handleError(res, error, "Failed to delete blog");
+      next(error);
     }
   };
 
-  filterBlog = async (req, res) => {
+  filterBlog = async (req, res, next) => {
     try {
       const { author, tags } = req.query;
 
@@ -72,20 +60,20 @@ class BlogController {
 
       res.status(200).json(blogs);
     } catch (error) {
-      this.handleError(res, error, "An error occurred while filtering blogs");
+      next(error);
     }
   };
 
-  getAllBlogs = async (req, res) => {
+  getAllBlogs = async (req, res, next) => {
     try {
       const blogs = await blogModel.find({});
       res.status(200).json({ blogs });
     } catch (error) {
-      this.handleError(res, error);
+      next(error);
     }
   };
 
-  getBlogById = async (req, res) => {
+  getBlogById = async (req, res, next) => {
     try {
       const blogId = req.query.id;
 
@@ -97,11 +85,11 @@ class BlogController {
 
       res.status(200).json({ blog });
     } catch (error) {
-      this.handleError(res, error);
+      next(error);
     }
   };
 
-  searchBlogs = async (req, res) => {
+  searchBlogs = async (req, res, next) => {
     try {
       const { q } = req.query;
       if (!q) {
@@ -117,15 +105,11 @@ class BlogController {
 
       res.status(200).json({ message: "Blogs found", blogs });
     } catch (error) {
-      this.handleError(
-        res,
-        error,
-        "An error occurred while searching for blogs"
-      );
+      next(error);
     }
   };
 
-  updateBlog = async (req, res) => {
+  updateBlog = async (req, res, next) => {
     try {
       const blogId = req.query.id;
 
@@ -160,7 +144,7 @@ class BlogController {
         .status(200)
         .json({ message: "Blog updated successfully", updatedBlog });
     } catch (error) {
-      this.handleError(res, error, "Error updating blog");
+      next(error);
     }
   };
 }
