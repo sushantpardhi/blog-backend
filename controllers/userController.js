@@ -133,19 +133,30 @@ class UserController {
   updateUser = async (req, res, next) => {
     const userId = req.user.id;
     const { username, email, profilePic } = req.body;
-    const usernameError = validateUsername(username);
-    const emailError = validateEmail(email);
 
-    if (usernameError || emailError) {
-      return res.status(400).json({
-        message: usernameError || emailError,
-      });
+    const updates = {};
+    if (username) {
+      const usernameError = validateUsername(username);
+      if (usernameError) {
+        return res.status(400).json({ message: usernameError });
+      }
+      updates.username = username;
+    }
+    if (email) {
+      const emailError = validateEmail(email);
+      if (emailError) {
+        return res.status(400).json({ message: emailError });
+      }
+      updates.email = email;
+    }
+    if (profilePic) {
+      updates.profilePic = profilePic;
     }
 
     try {
       const updatedUser = await userModel.findByIdAndUpdate(
         userId,
-        { username, email, profilePic },
+        { $set: updates },
         { new: true, runValidators: true }
       );
       if (!updatedUser)
