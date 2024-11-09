@@ -47,6 +47,30 @@ export const sendResetTokenEmail = async (email, resetToken) => {
   });
 };
 
+export const sendPasswordResetConfirmationEmail = async (email) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    secure: true,
+    port: 465,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "Password Reset Confirmation",
+    text: `Your password has been successfully reset.`,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) console.error("Error sending email:", error);
+    else console.log("Email sent: " + info.response);
+  });
+};
+
 export const validateUsername = (username) => {
   if (!username || username.length < 3) {
     return "Username must be at least 3 characters long.";
@@ -67,8 +91,6 @@ export const validatePassword = (password) => {
   }
   return null;
 };
-
-// New utility functions
 
 export const hashPassword = async (password) => {
   return await bcrypt.hash(password, 10);

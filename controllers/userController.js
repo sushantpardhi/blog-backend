@@ -15,6 +15,7 @@ import {
   verifyToken,
   sendWelcomeEmail,
   hashPassword,
+  sendPasswordResetConfirmationEmail,
 } from "../utils/userUtils.js";
 import validator from "validator";
 
@@ -227,6 +228,8 @@ class UserController {
       user.isPasswordReset = true;
       await user.save();
       user.isPasswordReset = undefined;
+
+      await sendPasswordResetConfirmationEmail(user.email);
 
       console.log("Password reset successful for user:", user._id);
       res.status(200).json({ message: "Password reset successful" });
