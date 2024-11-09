@@ -8,7 +8,15 @@ import {
   storeInCookie,
   manageTokenCount,
   sendResetTokenEmail,
+  validateUsername,
+  validateEmail,
+  validatePassword,
+  comparePasswords,
+  verifyToken,
+  sendWelcomeEmail,
+  hashPassword,
 } from "../utils/userUtils.js";
+import validator from "validator";
 
 class UserController {
   getAllUsers = async (req, res, next) => {
@@ -22,14 +30,21 @@ class UserController {
 
   registerController = async (req, res, next) => {
     const { username, email, password } = req.body;
-    if (!username || !email || !password) {
-      return res.status(400).json({ message: "All fields are required." });
+    const usernameError = validateUsername(username);
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
+
+    if (usernameError || emailError || passwordError) {
+      return res.status(400).json({
+        message: usernameError || emailError || passwordError,
+      });
     }
 
     try {
       const newUser = new userModel(req.body);
       await newUser.save();
-      const { password, ...others } = newUser._doc;
+      const { password: userPassword, ...others } = newUser._doc;
+      await sendWelcomeEmail(email, username);
       res
         .status(201)
         .json({ message: "User registered successfully!", user: others });
@@ -40,15 +55,18 @@ class UserController {
 
   loginController = async (req, res, next) => {
     const { username, password } = req.body;
-    if (!username || !password) {
-      return res
-        .status(400)
-        .json({ message: "Please provide username and password." });
+    const usernameError = validateUsername(username);
+    const passwordError = validatePassword(password);
+
+    if (usernameError || passwordError) {
+      return res.status(400).json({
+        message: usernameError || passwordError,
+      });
     }
 
     try {
       const user = await userModel.findOne({ username });
-      if (!user || !(await user.comparePassword(password))) {
+      if (!user || !(await comparePasswords(password, user.password))) {
         return res.status(400).json({ message: "Invalid credentials" });
       }
 
@@ -64,6 +82,10 @@ class UserController {
   logoutController = async (req, res, next) => {
     try {
       const token = req.cookies.token;
+      if (!token) {
+        return res.status(400).json({ message: "No token found in cookies." });
+      }
+
       await new tokenModel({ token }).save();
       manageTokenCount();
       await res.clearCookie("token");
@@ -78,6 +100,9 @@ class UserController {
   getToken = async (req, res, next) => {
     try {
       const token = req.cookies.token;
+      if (!token) {
+        return res.status(400).json({ message: "No token found in cookies." });
+      }
       res.status(200).json({ token });
     } catch (error) {
       next(error);
@@ -89,7 +114,11 @@ class UserController {
     if (!token) return res.status(401).json({ message: "User not logged in" });
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = verifyToken(token);
+      if (!decoded) {
+        return res.status(400).json({ message: "Invalid token." });
+      }
+
       const user = await userModel.findById(decoded.id);
       if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -100,13 +129,16 @@ class UserController {
     }
   };
 
-  updateProfile = async (req, res, next) => {
+  updateUser = async (req, res, next) => {
     const userId = req.user.id;
     const { username, email, profilePic } = req.body;
-    if (!username || !email) {
-      return res
-        .status(400)
-        .json({ message: "Username and email are required." });
+    const usernameError = validateUsername(username);
+    const emailError = validateEmail(email);
+
+    if (usernameError || emailError) {
+      return res.status(400).json({
+        message: usernameError || emailError,
+      });
     }
 
     try {
@@ -129,8 +161,12 @@ class UserController {
 
   initiatePasswordReset = async (req, res, next) => {
     const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ message: "Email is required." });
+    const emailError = validateEmail(email);
+
+    if (emailError) {
+      return res.status(400).json({
+        message: emailError,
+      });
     }
 
     try {
@@ -156,7 +192,9 @@ class UserController {
 
   resetPassword = async (req, res, next) => {
     const { token, newPassword } = req.body;
-    if (!token || !newPassword) {
+    const passwordError = validatePassword(newPassword);
+
+    if (!token || passwordError) {
       console.log("Token or new password not provided");
       return res
         .status(400)
@@ -182,9 +220,7 @@ class UserController {
           .json({ message: "Token is invalid or has expired" });
       }
 
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      console.log("Hashed new password:", hashedPassword);
-
+      const hashedPassword = await hashPassword(newPassword);
       user.password = hashedPassword;
       user.passwordResetToken = null;
       user.passwordResetExpires = null;
