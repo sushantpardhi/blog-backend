@@ -12,6 +12,7 @@ router.post("/publish", verifyToken, blog.publishBlog);
 router.delete("/delete", verifyToken, blog.deleteBlog);
 router.put("/update/:id", verifyToken, blog.updateBlog);
 router.post("/addComment/:id", verifyToken, blog.addComment);
+router.put("/updateComment/:id", verifyToken, blog.updateComment);
 router.get("/allblogs", blog.getAllBlogs);
 router.get("/:id", blog.getBlogById);
 
