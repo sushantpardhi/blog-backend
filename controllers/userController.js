@@ -99,6 +99,9 @@ class UserController {
 
   logoutController = async (req, res, next) => {
     try {
+      if (!req.cookies) {
+        return res.status(400).json({ message: "No cookies found." });
+      }
       const token = req.cookies.token;
       if (!token) {
         return res.status(400).json({ message: "No token found in cookies." });
@@ -117,6 +120,9 @@ class UserController {
 
   getToken = async (req, res, next) => {
     try {
+      if (!req.cookies) {
+        return res.status(400).json({ message: "No cookies found." });
+      }
       const token = req.cookies.token;
       if (!token) {
         return res.status(400).json({ message: "No token found in cookies." });
@@ -128,6 +134,9 @@ class UserController {
   };
 
   currentUser = async (req, res, next) => {
+    if (!req.cookies) {
+      return res.status(400).json({ message: "No cookies found." });
+    }
     const token = req.cookies.token;
     if (!token) return res.status(401).json({ message: "User not logged in" });
 
