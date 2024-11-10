@@ -9,7 +9,6 @@ import serverConnection from "./utils/server.js";
 import errorHandler from "./utils/errorHandler.js";
 import userRoutes from "./routes/userRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
-import commentRoutes from "./routes/commentRoutes.js";
 
 const app = express();
 
@@ -26,7 +25,6 @@ app.use(
 // Routes
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/blog", blogRoutes);
-app.use("/api/v1/comment", commentRoutes);
 
 // Error Handling
 app.use(errorHandler);

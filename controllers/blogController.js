@@ -60,7 +60,7 @@ class BlogController {
 
   // Update a blog
   updateBlog = async (req, res, next) => {
-    const blogId = req.params.id;
+    const blogId = req.params.blogId;
     try {
       if (!blogId) {
         return res.status(400).json({ message: "Blog ID is required" });
@@ -78,12 +78,24 @@ class BlogController {
         });
       }
 
-      const { tags, ...otherUpdates } = req.body;
+      const { likes, author, tags, ...otherUpdates } = req.body;
+
+      if (likes !== undefined) {
+        return res
+          .status(400)
+          .json({ message: "Cannot update likes directly" });
+      }
+
+      if (author !== undefined) {
+        return res
+          .status(400)
+          .json({ message: "Cannot update author directly" });
+      }
 
       const updatedBlog = await blogModel
         .findByIdAndUpdate(
           blogId,
-          { $set: { ...otherUpdates, tags } },
+          { $set: { ...otherUpdates }, tags },
           { new: true }
         )
         .populate("author", "-password")
@@ -97,35 +109,9 @@ class BlogController {
     }
   };
 
-  // Update likes of a blog
-  updateLikes = async (req, res, next) => {
-    const blogId = req.params.id;
-    const { increment } = req.body; // increment can be positive or negative
-    try {
-      if (!blogId) {
-        return res.status(400).json({ message: "Blog ID is required" });
-      }
-
-      const blog = await blogModel.findById(blogId);
-
-      if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
-      }
-
-      await blog.updateLikes(increment);
-
-      res.status(200).json({
-        message: "Blog likes updated successfully",
-        likes: blog.likes,
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
-
   // Like a blog
   likeBlog = async (req, res, next) => {
-    const blogId = req.params.id;
+    const blogId = req.params.blogId;
     const userId = req.user.id;
     try {
       if (!blogId) {
@@ -150,7 +136,7 @@ class BlogController {
 
   // Unlike a blog
   unlikeBlog = async (req, res, next) => {
-    const blogId = req.params.id;
+    const blogId = req.params.blogId;
     const userId = req.user.id;
     try {
       if (!blogId) {

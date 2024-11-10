@@ -1,17 +1,38 @@
 import express from "express";
 import verifyToken from "../middlewares/verifyToken.js";
 import blogController from "../controllers/blogController.js";
+import CommentController from "../controllers/commentController.js";
 
 const router = express.Router();
+const comment = new CommentController();
 const blog = new blogController();
 
+//Comment Routes
+router.post("/:blogId/comment/add", verifyToken, comment.addComment);
+router.put(
+  "/:blogId/comment/update/:commentId",
+  verifyToken,
+  comment.updateComment
+);
+router.put(
+  "/:blogId/comment/like/:commentId",
+  verifyToken,
+  comment.likeComment
+);
+router.put(
+  "/:blogId/comment/unlike/:commentId",
+  verifyToken,
+  comment.unlikeComment
+);
+
+//Blog Routes
 router.get("/search", blog.searchBlog);
 router.get("/filter", blog.filterBlog);
 router.post("/publish", verifyToken, blog.publishBlog);
 router.delete("/delete", verifyToken, blog.deleteBlog);
-router.put("/update/:id", verifyToken, blog.updateBlog);
-router.put("/like/:id", verifyToken, blog.likeBlog);
-router.put("/unlike/:id", verifyToken, blog.unlikeBlog);
+router.put("/update/:blogId", verifyToken, blog.updateBlog);
+router.put("/like/:blogId", verifyToken, blog.likeBlog);
+router.put("/unlike/:blogId", verifyToken, blog.unlikeBlog);
 router.get("/allblogs", blog.getAllBlogs);
 router.get("/:id", blog.getBlogById);
 
