@@ -42,6 +42,23 @@ class UserController {
     }
 
     try {
+      const usernameExists = await userModel.findOne({
+        username,
+      });
+      if (usernameExists) {
+        return res.status(400).json({
+          message: "Username is already taken",
+        });
+      }
+      const emailExists = await userModel.findOne({
+        email,
+      });
+      if (emailExists) {
+        return res.status(400).json({
+          message: "Email is already registered with another account",
+        });
+      }
+
       const newUser = new userModel(req.body);
       await newUser.save();
       const { password: userPassword, ...others } = newUser._doc;
