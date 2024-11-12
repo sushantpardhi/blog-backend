@@ -16,6 +16,13 @@ import {
   hashPassword,
   sendPasswordResetConfirmationEmail,
 } from "../utils/userUtils.js";
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+  ForbiddenError,
+  ConflictError,
+} from "../utils/customError.js";
 
 class UserController {
   getAllUsers = async (req, res, next) => {
@@ -34,9 +41,9 @@ class UserController {
     const passwordError = validatePassword(password);
 
     if (usernameError || emailError || passwordError) {
-      return res.status(400).json({
-        message: usernameError || emailError || passwordError,
-      });
+      return next(
+        new BadRequestError(usernameError || emailError || passwordError)
+      );
     }
 
     try {
@@ -44,17 +51,15 @@ class UserController {
         username,
       });
       if (usernameExists) {
-        return res.status(400).json({
-          message: "Username is already taken",
-        });
+        return next(new ConflictError("Username is already taken"));
       }
       const emailExists = await userModel.findOne({
         email,
       });
       if (emailExists) {
-        return res.status(400).json({
-          message: "Email is already registered with another account",
-        });
+        return next(
+          new ConflictError("Email is already registered with another account")
+        );
       }
 
       const newUser = new userModel(req.body);
@@ -75,15 +80,13 @@ class UserController {
     const passwordError = validatePassword(password);
 
     if (usernameError || passwordError) {
-      return res.status(400).json({
-        message: usernameError || passwordError,
-      });
+      return next(new BadRequestError(usernameError || passwordError));
     }
 
     try {
       const user = await userModel.findOne({ username });
       if (!user || !(await comparePasswords(password, user.password))) {
-        return res.status(400).json({ message: "Invalid credentials" });
+        return next(new UnauthorizedError("Invalid credentials"));
       }
 
       const { password: userPassword, ...others } = user._doc;
@@ -99,7 +102,7 @@ class UserController {
     try {
       const token = req.cookies.token;
       if (!token) {
-        return res.status(400).json({ message: "No token found in cookies." });
+        return next(new BadRequestError("No token found in cookies."));
       }
       await new tokenModel({ token }).save();
       manageTokenCount();
@@ -115,11 +118,11 @@ class UserController {
   getToken = async (req, res, next) => {
     try {
       if (!req.cookies) {
-        return res.status(400).json({ message: "No cookies found." });
+        return next(new BadRequestError("No cookies found."));
       }
       const token = req.cookies.token;
       if (!token) {
-        return res.status(400).json({ message: "No token found in cookies." });
+        return next(new BadRequestError("No token found in cookies."));
       }
       res.status(200).json({ token });
     } catch (error) {
@@ -129,19 +132,19 @@ class UserController {
 
   currentUser = async (req, res, next) => {
     if (!req.cookies) {
-      return res.status(400).json({ message: "No cookies found." });
+      return next(new BadRequestError("No cookies found."));
     }
     const token = req.cookies.token;
-    if (!token) return res.status(401).json({ message: "User not logged in" });
+    if (!token) return next(new UnauthorizedError("User not logged in"));
 
     try {
       const decoded = verifyToken(token);
       if (!decoded) {
-        return res.status(400).json({ message: "Invalid token." });
+        return next(new BadRequestError("Invalid token."));
       }
 
       const user = await userModel.findById(decoded.id);
-      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user) return next(new NotFoundError("User not found"));
 
       const { password, ...others } = user._doc;
       res.status(200).json(others);
@@ -158,22 +161,22 @@ class UserController {
     if (username) {
       const usernameError = validateUsername(username);
       if (usernameError) {
-        return res.status(400).json({ message: usernameError });
+        return next(new BadRequestError(usernameError));
       }
       const usernameExists = await userModel.findOne({ username });
       if (usernameExists) {
-        return res.status(400).json({ message: "Username already taken" });
+        return next(new ConflictError("Username already taken"));
       }
       updates.username = username;
     }
     if (email) {
       const emailError = validateEmail(email);
       if (emailError) {
-        return res.status(400).json({ message: emailError });
+        return next(new BadRequestError(emailError));
       }
       const emailExists = await userModel.findOne({ email });
       if (emailExists) {
-        return res.status(400).json({ message: "Email already taken" });
+        return next(new ConflictError("Email already taken"));
       }
       updates.email = email;
     }
@@ -187,8 +190,7 @@ class UserController {
         { $set: updates },
         { new: true, runValidators: true }
       );
-      if (!updatedUser)
-        return res.status(404).json({ message: "User not found" });
+      if (!updatedUser) return next(new NotFoundError("User not found"));
 
       const { password, ...others } = updatedUser._doc;
       res
@@ -201,7 +203,7 @@ class UserController {
 
   uploadProfilePic = async (req, res, next) => {
     if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "User not logged in" });
+      return next(new UnauthorizedError("User not logged in"));
     }
 
     try {
@@ -215,7 +217,7 @@ class UserController {
       );
 
       if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
+        return next(new NotFoundError("User not found"));
       }
 
       const { password, ...others } = updatedUser._doc;
@@ -233,14 +235,12 @@ class UserController {
     const emailError = validateEmail(email);
 
     if (emailError) {
-      return res.status(400).json({
-        message: emailError,
-      });
+      return next(new BadRequestError(emailError));
     }
 
     try {
       const user = await userModel.findOne({ email });
-      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user) return next(new NotFoundError("User not found"));
 
       const resetToken = crypto.randomBytes(3).toString("hex");
       const hashedToken = crypto
@@ -264,10 +264,7 @@ class UserController {
     const passwordError = validatePassword(newPassword);
 
     if (!token || passwordError) {
-      console.log("Token or new password not provided");
-      return res
-        .status(400)
-        .json({ message: "Token and new password are required." });
+      return next(new BadRequestError("Token and new password are required."));
     }
 
     try {
@@ -275,7 +272,6 @@ class UserController {
         .createHash("sha256")
         .update(token)
         .digest("hex");
-      console.log("Hashed token:", hashedToken);
 
       const user = await userModel.findOne({
         passwordResetToken: hashedToken,
@@ -283,10 +279,7 @@ class UserController {
       });
 
       if (!user) {
-        console.log("User not found or token expired");
-        return res
-          .status(400)
-          .json({ message: "Token is invalid or has expired" });
+        return next(new BadRequestError("Token is invalid or has expired"));
       }
 
       const hashedPassword = await hashPassword(newPassword);
@@ -299,7 +292,6 @@ class UserController {
 
       await sendPasswordResetConfirmationEmail(user.email);
 
-      console.log("Password reset successful for user:", user._id);
       res.status(200).json({ message: "Password reset successful" });
     } catch (error) {
       next(error);
@@ -311,19 +303,17 @@ class UserController {
 
     const user = await userModel.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return next(new NotFoundError("User not found"));
     }
     const currentUsername = user.username;
 
     //User input asking for username as a confirmation
     const { username } = req.body;
 
-    console.log(username, currentUsername);
-
     if (currentUsername !== username) {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to delete this user" });
+      return next(
+        new ForbiddenError("You are not authorized to delete this user")
+      );
     }
 
     try {
@@ -332,7 +322,7 @@ class UserController {
       const user = await userModel.findByIdAndDelete(userId);
       await res.clearCookie("token");
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        return next(new NotFoundError("User not found"));
       }
 
       res

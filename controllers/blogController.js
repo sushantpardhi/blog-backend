@@ -1,14 +1,18 @@
 import blogModel from "../models/blogModel.js";
 import mongoose from "mongoose";
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+  ForbiddenError,
+} from "../utils/customError.js";
 
 class BlogController {
   // Publish a new blog
   publishBlog = async (req, res, next) => {
     try {
       if (!req.user) {
-        return res
-          .status(401)
-          .json({ message: "Unauthorized. Please log in." });
+        return next(new UnauthorizedError("Unauthorized. Please log in."));
       }
       const newBlog = new blogModel({
         ...req.body,
@@ -40,7 +44,7 @@ class BlogController {
     const blogId = req.params.id;
     try {
       if (!blogId) {
-        return res.status(400).json({ message: "Blog ID is required" });
+        return next(new BadRequestError("Blog ID is required"));
       }
 
       const blog = await blogModel
@@ -49,7 +53,7 @@ class BlogController {
         .populate("comments.commenter", "-password");
 
       if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
+        return next(new NotFoundError("Blog not found"));
       }
 
       res.status(200).json({ blog });
@@ -63,33 +67,31 @@ class BlogController {
     const blogId = req.params.blogId;
     try {
       if (!blogId) {
-        return res.status(400).json({ message: "Blog ID is required" });
+        return next(new BadRequestError("Blog ID is required"));
       }
 
       const blog = await blogModel.findById(blogId);
 
       if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
+        return next(new NotFoundError("Blog not found"));
       }
 
       if (blog.author.toString() !== req.user.id) {
-        return res.status(403).json({
-          message: "Access denied. You are not the author of this post.",
-        });
+        return next(
+          new ForbiddenError(
+            "Access denied. You are not the author of this post."
+          )
+        );
       }
 
       const { likes, author, tags, ...otherUpdates } = req.body;
 
       if (likes !== undefined) {
-        return res
-          .status(400)
-          .json({ message: "Cannot update likes directly" });
+        return next(new BadRequestError("Cannot update likes directly"));
       }
 
       if (author !== undefined) {
-        return res
-          .status(400)
-          .json({ message: "Cannot update author directly" });
+        return next(new BadRequestError("Cannot update author directly"));
       }
 
       const updatedBlog = await blogModel
@@ -115,13 +117,13 @@ class BlogController {
     const userId = req.user.id;
     try {
       if (!blogId) {
-        return res.status(400).json({ message: "Blog ID is required" });
+        return next(new BadRequestError("Blog ID is required"));
       }
 
       const blog = await blogModel.findById(blogId);
 
       if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
+        return next(new NotFoundError("Blog not found"));
       }
 
       await blog.like(userId);
@@ -140,13 +142,13 @@ class BlogController {
     const userId = req.user.id;
     try {
       if (!blogId) {
-        return res.status(400).json({ message: "Blog ID is required" });
+        return next(new BadRequestError("Blog ID is required"));
       }
 
       const blog = await blogModel.findById(blogId);
 
       if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
+        return next(new NotFoundError("Blog not found"));
       }
 
       await blog.unlike(userId);
@@ -164,19 +166,19 @@ class BlogController {
     const blogId = req.query.id;
     try {
       if (!blogId) {
-        return res.status(400).json({ message: "Blog ID is required" });
+        return next(new BadRequestError("Blog ID is required"));
       }
 
       const blog = await blogModel.findById(blogId);
 
       if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
+        return next(new NotFoundError("Blog not found"));
       }
 
       if (blog.author.toString() !== req.user.id.toString()) {
-        return res
-          .status(403)
-          .json({ message: "You are not authorized to delete this blog" });
+        return next(
+          new ForbiddenError("You are not authorized to delete this blog")
+        );
       }
 
       await blogModel.findByIdAndDelete(blogId);
@@ -192,7 +194,7 @@ class BlogController {
     const query = req.query.q;
 
     if (!query) {
-      return res.status(400).json({ message: "Search query is required" });
+      return next(new BadRequestError("Search query is required"));
     }
 
     try {
@@ -215,9 +217,7 @@ class BlogController {
     const { tags, author } = req.query;
 
     if (!tags && !author) {
-      return res
-        .status(400)
-        .json({ message: "Tags or author query is required" });
+      return next(new BadRequestError("Tags or author query is required"));
     }
 
     try {
@@ -227,7 +227,7 @@ class BlogController {
       }
       if (author) {
         if (!mongoose.Types.ObjectId.isValid(author)) {
-          return res.status(400).json({ message: "Invalid author ID" });
+          return next(new BadRequestError("Invalid author ID"));
         }
         filterCriteria.author = new mongoose.Types.ObjectId(author);
       }

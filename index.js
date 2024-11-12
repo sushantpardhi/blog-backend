@@ -30,12 +30,5 @@ app.use("/api/v1/blog", blogRoutes);
 
 // Error Handling
 app.use(errorHandler);
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send({
-    status: "error",
-    message: "Something went wrong!",
-  });
-});
 
 serverConnection(app);

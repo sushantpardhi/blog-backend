@@ -1,24 +1,28 @@
 import blogModel from "../models/blogModel.js";
+import {
+  BadRequestError,
+  NotFoundError,
+  UnauthorizedError,
+  ForbiddenError,
+} from "../utils/customError.js";
 
 class CommentController {
   // Add a comment to a blog
   addComment = async (req, res, next) => {
     try {
       if (!req.user) {
-        return res
-          .status(401)
-          .json({ message: "Unauthorized. Please log in." });
+        return next(new UnauthorizedError("Unauthorized. Please log in."));
       }
 
       const blogId = req.params.blogId;
       if (!blogId) {
-        return res.status(400).json({ message: "Blog ID is required" });
+        return next(new BadRequestError("Blog ID is required"));
       }
 
       const blog = await blogModel.findById(blogId);
 
       if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
+        return next(new NotFoundError("Blog not found"));
       }
 
       const newComment = {
@@ -46,37 +50,37 @@ class CommentController {
   updateComment = async (req, res, next) => {
     try {
       if (!req.user) {
-        return res
-          .status(401)
-          .json({ message: "Unauthorized. Please log in." });
+        return next(new UnauthorizedError("Unauthorized. Please log in."));
       }
 
       const blogId = req.params.blogId;
       if (!blogId) {
-        return res.status(400).json({ message: "Blog ID is required" });
+        return next(new BadRequestError("Blog ID is required"));
       }
 
-      const commentId = req.params.commentId; // Fix typo here
+      const commentId = req.params.commentId;
       if (!commentId) {
-        return res.status(400).json({ message: "Comment ID is required" });
+        return next(new BadRequestError("Comment ID is required"));
       }
 
       const blog = await blogModel.findById(blogId);
 
       if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
+        return next(new NotFoundError("Blog not found"));
       }
 
       const comment = blog.comments.id(commentId);
 
       if (!comment) {
-        return res.status(404).json({ message: "Comment not found" });
+        return next(new NotFoundError("Comment not found"));
       }
 
       if (comment.commenter.toString() !== req.user.id) {
-        return res.status(403).json({
-          message: "Access denied. You are not the author of this comment.",
-        });
+        return next(
+          new ForbiddenError(
+            "Access denied. You are not the author of this comment."
+          )
+        );
       }
 
       comment.content = req.body.comment;
@@ -98,23 +102,19 @@ class CommentController {
   likeComment = async (req, res, next) => {
     try {
       if (!req.user) {
-        return res
-          .status(401)
-          .json({ message: "Unauthorized. Please log in." });
+        return next(new UnauthorizedError("Unauthorized. Please log in."));
       }
 
       const blogId = req.params.blogId;
       const commentId = req.params.commentId;
 
       if (!blogId || !commentId) {
-        return res
-          .status(400)
-          .json({ message: "Blog ID and Comment ID are required" });
+        return next(new BadRequestError("Blog ID and Comment ID are required"));
       }
 
       const blog = await blogModel.findById(blogId);
       if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
+        return next(new NotFoundError("Blog not found"));
       }
 
       await blog.likeComment(commentId, req.user.id);
@@ -134,23 +134,19 @@ class CommentController {
   unlikeComment = async (req, res, next) => {
     try {
       if (!req.user) {
-        return res
-          .status(401)
-          .json({ message: "Unauthorized. Please log in." });
+        return next(new UnauthorizedError("Unauthorized. Please log in."));
       }
 
       const blogId = req.params.blogId;
       const commentId = req.params.commentId;
 
       if (!blogId || !commentId) {
-        return res
-          .status(400)
-          .json({ message: "Blog ID and Comment ID are required" });
+        return next(new BadRequestError("Blog ID and Comment ID are required"));
       }
 
       const blog = await blogModel.findById(blogId);
       if (!blog) {
-        return res.status(404).json({ message: "Blog not found" });
+        return next(new NotFoundError("Blog not found"));
       }
 
       await blog.unlikeComment(commentId, req.user.id);

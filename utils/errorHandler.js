@@ -1,5 +1,14 @@
+import { CustomError } from "./customError.js";
+
 const errorHandler = (err, req, res, next) => {
   console.error(err.stack);
+
+  if (err instanceof CustomError) {
+    return res.status(err.statusCode).json({
+      status: "fail",
+      message: err.message,
+    });
+  }
 
   if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
     return res.status(401).json({
