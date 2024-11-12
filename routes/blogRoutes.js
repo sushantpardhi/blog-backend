@@ -34,7 +34,8 @@ router.post(
 
 //Blog Routes
 router.get("/search", blog.searchBlog);
-router.get("/filter", blog.filterBlog);
+router.get("/filter/tags", blog.filterBlogByTags);
+router.get("/filter/author", blog.filterBlogByAuthor);
 router.post("/publish", verifyToken, blog.publishBlog);
 router.delete("/delete", verifyToken, blog.deleteBlog);
 router.put("/update/:blogId", verifyToken, blog.updateBlog);

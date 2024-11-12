@@ -26,14 +26,32 @@ class BlogController {
     }
   };
 
-  // Get all blogs
+  // Get all blogs with pagination
   getAllBlogs = async (req, res, next) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     try {
       const blogs = await blogModel
         .find({})
+        .skip(skip)
+        .limit(limit)
         .populate("author", "-password")
         .populate("comments.commenter", "-password");
-      res.status(200).json({ blogs });
+
+      const totalBlogs = await blogModel.countDocuments({});
+      const totalPages = Math.ceil(totalBlogs / limit);
+
+      res.status(200).json({
+        blogs,
+        pagination: {
+          totalBlogs,
+          totalPages,
+          currentPage: page,
+          pageSize: limit,
+        },
+      });
     } catch (error) {
       next(error);
     }
@@ -189,7 +207,7 @@ class BlogController {
     }
   };
 
-  // Search blogs by query
+  // Search blogs by title, content, or tags
   searchBlog = async (req, res, next) => {
     const query = req.query.q;
 
@@ -202,7 +220,6 @@ class BlogController {
         $or: [
           { title: { $regex: query, $options: "i" } },
           { content: { $regex: query, $options: "i" } },
-          { tags: { $regex: query, $options: "i" } },
         ],
       });
 
@@ -212,27 +229,41 @@ class BlogController {
     }
   };
 
-  // Filter blogs by tags or author
-  filterBlog = async (req, res, next) => {
-    const { tags, author } = req.query;
+  // Filter blogs by tags
+  filterBlogByTags = async (req, res, next) => {
+    const tags = req.query.tags;
 
-    if (!tags && !author) {
-      return next(new BadRequestError("Tags or author query is required"));
+    if (!tags) {
+      return next(new BadRequestError("Tags query is required"));
     }
 
     try {
-      const filterCriteria = {};
-      if (tags) {
-        filterCriteria.tags = { $in: tags.split(",") };
-      }
-      if (author) {
-        if (!mongoose.Types.ObjectId.isValid(author)) {
-          return next(new BadRequestError("Invalid author ID"));
-        }
-        filterCriteria.author = new mongoose.Types.ObjectId(author);
-      }
+      const blogs = await blogModel.find({
+        tags: { $in: tags.split(",") },
+      });
 
-      const blogs = await blogModel.find(filterCriteria);
+      res.status(200).json({ blogs });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Filter blogs by author
+  filterBlogByAuthor = async (req, res, next) => {
+    const author = req.query.author;
+
+    if (!author) {
+      return next(new BadRequestError("Author query is required"));
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(author)) {
+      return next(new BadRequestError("Invalid author ID"));
+    }
+
+    try {
+      const blogs = await blogModel.find({
+        author: new mongoose.Types.ObjectId(author),
+      });
 
       res.status(200).json({ blogs });
     } catch (error) {
