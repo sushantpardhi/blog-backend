@@ -1,7 +1,5 @@
 import userModel from "../models/userModel.js";
-import bcrypt from "bcrypt";
 import tokenModel from "../models/token.js";
-import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import {
   generateToken,
@@ -17,7 +15,6 @@ import {
   hashPassword,
   sendPasswordResetConfirmationEmail,
 } from "../utils/userUtils.js";
-import validator from "validator";
 
 class UserController {
   getAllUsers = async (req, res, next) => {
@@ -99,14 +96,10 @@ class UserController {
 
   logoutController = async (req, res, next) => {
     try {
-      if (!req.cookies) {
-        return res.status(400).json({ message: "No cookies found." });
-      }
       const token = req.cookies.token;
       if (!token) {
         return res.status(400).json({ message: "No token found in cookies." });
       }
-
       await new tokenModel({ token }).save();
       manageTokenCount();
       await res.clearCookie("token");
@@ -166,12 +159,20 @@ class UserController {
       if (usernameError) {
         return res.status(400).json({ message: usernameError });
       }
+      const usernameExists = await userModel.findOne({ username });
+      if (usernameExists) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
       updates.username = username;
     }
     if (email) {
       const emailError = validateEmail(email);
       if (emailError) {
         return res.status(400).json({ message: emailError });
+      }
+      const emailExists = await userModel.findOne({ email });
+      if (emailExists) {
+        return res.status(400).json({ message: "Email already taken" });
       }
       updates.email = email;
     }

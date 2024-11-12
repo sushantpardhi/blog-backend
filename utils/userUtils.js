@@ -8,7 +8,11 @@ export const generateToken = (obj) =>
   jwt.sign({ id: obj._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
 export const storeInCookie = async (res, token) => {
-  await res.cookie("token", token, { httpOnly: true, secure: true });
+  await res.cookie("token", token, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "None",
+  });
 };
 
 export const manageTokenCount = async () => {
