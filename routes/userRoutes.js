@@ -15,5 +15,6 @@ router.get("/token", user.getToken);
 router.put("/updateProfile", verifyToken, user.updateUser);
 router.post("/initiatePasswordReset", user.initiatePasswordReset);
 router.post("/resetPassword", user.resetPassword);
+router.delete("/delete", verifyToken, user.deleteUser);
 
 export default router;

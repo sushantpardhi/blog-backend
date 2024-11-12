@@ -1,4 +1,5 @@
 import userModel from "../models/userModel.js";
+import blogModel from "../models/blogModel.js";
 import tokenModel from "../models/token.js";
 import crypto from "crypto";
 import {
@@ -271,6 +272,43 @@ class UserController {
 
       console.log("Password reset successful for user:", user._id);
       res.status(200).json({ message: "Password reset successful" });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  deleteUser = async (req, res, next) => {
+    const userId = req.user.id;
+
+    const user = await userModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const currentUsername = user.username;
+
+    //User input asking for username as a confirmation
+    const { username } = req.body;
+
+    console.log(username, currentUsername);
+
+    if (currentUsername !== username) {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to delete this user" });
+    }
+
+    try {
+      await blogModel.deleteMany({ author: userId });
+
+      const user = await userModel.findByIdAndDelete(userId);
+      await res.clearCookie("token");
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res
+        .status(200)
+        .json({ message: "User and their blogs deleted successfully" });
     } catch (error) {
       next(error);
     }
