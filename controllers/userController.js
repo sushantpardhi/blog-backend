@@ -199,6 +199,35 @@ class UserController {
     }
   };
 
+  uploadProfilePic = async (req, res, next) => {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "User not logged in" });
+    }
+
+    try {
+      const userId = req.user.id;
+      const profilePicUrl = req.file.path;
+
+      const updatedUser = await userModel.findByIdAndUpdate(
+        userId,
+        { profilePic: profilePicUrl },
+        { new: true }
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { password, ...others } = updatedUser._doc;
+      res.status(200).json({
+        message: "Profile picture updated successfully",
+        user: others,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   initiatePasswordReset = async (req, res, next) => {
     const { email } = req.body;
     const emailError = validateEmail(email);
