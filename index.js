@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import rateLimiter from "./middlewares/rateLimiter.js"; // Import the rate limiter
 
 import serverConnection from "./utils/server.js";
 import errorHandler from "./utils/errorHandler.js";
@@ -21,6 +22,7 @@ app.use(
     credentials: true,
   })
 );
+app.use(rateLimiter); // Apply the rate limiter middleware
 
 // Routes
 app.use("/api/v1/user", userRoutes);
