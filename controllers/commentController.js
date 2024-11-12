@@ -7,7 +7,6 @@ import {
 } from "../utils/customError.js";
 
 class CommentController {
-  // Add a comment to a blog
   addComment = async (req, res, next) => {
     try {
       if (!req.user) {
@@ -46,7 +45,6 @@ class CommentController {
     }
   };
 
-  // Update a comment
   updateComment = async (req, res, next) => {
     try {
       if (!req.user) {
@@ -158,6 +156,44 @@ class CommentController {
       res
         .status(200)
         .json({ message: "Comment unliked successfully", blog: populatedBlog });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  replyToComment = async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return next(new UnauthorizedError("Unauthorized. Please log in."));
+      }
+
+      const { blogId, parentId } = req.params;
+      if (!blogId || !parentId) {
+        return next(
+          new BadRequestError("Blog ID and Parent Comment ID are required")
+        );
+      }
+
+      const blog = await blogModel.findById(blogId);
+      if (!blog) {
+        return next(new NotFoundError("Blog not found"));
+      }
+
+      const reply = {
+        commenter: req.user.id,
+        content: req.body.comment,
+      };
+
+      await blog.replyToComment(parentId, reply);
+
+      const populatedBlog = await blog.populate(
+        "comments.commenter comments.replies.commenter",
+        "-password"
+      );
+
+      res
+        .status(201)
+        .json({ message: "Reply added successfully", blog: populatedBlog });
     } catch (error) {
       next(error);
     }

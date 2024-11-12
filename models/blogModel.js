@@ -1,4 +1,5 @@
-import { model, Schema } from "mongoose";
+import mongoose, { Schema } from "mongoose";
+import Comment from "./commentModel.js";
 
 const blogSchema = new Schema(
   {
@@ -7,15 +8,7 @@ const blogSchema = new Schema(
     author: { type: Schema.Types.ObjectId, ref: "User" },
     likes: { type: Number, default: 0 },
     likedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    comments: [
-      {
-        commenter: { type: Schema.Types.ObjectId, ref: "User", required: true },
-        content: { type: String, required: true },
-        likes: { type: Number, default: 0 },
-        createdAt: { type: Date, default: Date.now },
-        likedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
-      },
-    ],
+    comments: [Comment.schema], // Use the schema from the Comment model
     tags: { type: [String] },
     status: {
       type: String,
@@ -68,4 +61,52 @@ blogSchema.methods.unlikeComment = async function (commentId, userId) {
   }
 };
 
-export default model("Blog", blogSchema);
+blogSchema.methods.replyToComment = async function (parentId, reply) {
+  const addReplyToComment = (comments, parentId, reply) => {
+    for (let comment of comments) {
+      if (comment._id.toString() === parentId) {
+        comment.replies.push(reply);
+        return true;
+      }
+      if (addReplyToComment(comment.replies, parentId, reply)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  if (!addReplyToComment(this.comments, parentId, reply)) {
+    throw new Error("Parent comment not found");
+  }
+
+  await this.save();
+};
+
+blogSchema.methods.likeReply = async function (parentId, commentId, userId) {
+  const parentComment = this.comments.id(parentId);
+  if (parentComment) {
+    const reply = parentComment.replies.id(commentId);
+    if (reply && !reply.likedBy.includes(userId)) {
+      reply.likes += 1;
+      reply.likedBy.push(userId);
+      await this.save();
+    }
+  }
+};
+
+blogSchema.methods.unlikeReply = async function (parentId, commentId, userId) {
+  const parentComment = this.comments.id(parentId);
+  if (parentComment) {
+    const reply = parentComment.replies.id(commentId);
+    if (reply) {
+      const index = reply.likedBy.indexOf(userId);
+      if (index !== -1) {
+        reply.likes -= 1;
+        reply.likedBy.splice(index, 1);
+        await this.save();
+      }
+    }
+  }
+};
+
+export default mongoose.model("Blog", blogSchema);
