@@ -22,7 +22,7 @@ app.use(
     credentials: true,
   })
 );
-app.use(rateLimiter); // Apply the rate limiter middleware
+app.use(rateLimiter);
 
 // Routes
 app.use("/api/v1/user", userRoutes);
