@@ -8,7 +8,7 @@ const blogSchema = new Schema(
     author: { type: Schema.Types.ObjectId, ref: "User" },
     likes: { type: Number, default: 0 },
     likedBy: [{ type: Schema.Types.ObjectId, ref: "User" }],
-    comments: [Comment.schema], // Use the schema from the Comment model
+    comments: [Comment.schema],
     tags: { type: [String] },
     status: {
       type: String,
