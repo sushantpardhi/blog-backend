@@ -1,6 +1,8 @@
 import blogModel from "../models/blogModel.js";
 import mongoose from "mongoose";
 import { sendJsonResponse } from "../utils/commonUtils.js";
+
+// Blog-related utility functions
 import {
   findBlogById,
   checkIfAuthor,

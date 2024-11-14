@@ -2,6 +2,8 @@ import crypto from "crypto";
 import userModel from "../models/userModel.js";
 import blogModel from "../models/blogModel.js";
 import tokenModel from "../models/token.js";
+
+// Utility functions
 import {
   generateToken,
   storeInCookie,
@@ -13,6 +15,8 @@ import {
   hashPassword,
   sendJsonResponse,
 } from "../utils/commonUtils.js";
+
+// User-related utility functions
 import {
   manageTokenCount,
   checkUserExistence,
@@ -21,11 +25,15 @@ import {
   findUserByEmail,
   checkCookiesAndToken,
 } from "../utils/userUtils.js";
+
+// Email utility functions
 import {
   sendResetTokenEmail,
   sendPasswordResetConfirmationEmail,
   sendWelcomeEmail,
 } from "../utils/emailUtils.js";
+
+// Custom error classes
 import {
   BadRequestError,
   NotFoundError,
@@ -35,6 +43,7 @@ import {
 } from "../utils/customError.js";
 
 class UserController {
+  // Get all users
   getAllUsers = async (req, res, next) => {
     try {
       const users = await userModel.find();
@@ -44,6 +53,7 @@ class UserController {
     }
   };
 
+  // Register a new user
   registerController = async (req, res, next) => {
     const { username, email, password } = req.body;
 
@@ -66,6 +76,7 @@ class UserController {
     }
   };
 
+  // User login
   loginController = async (req, res, next) => {
     const { username, password } = req.body;
 
@@ -87,6 +98,7 @@ class UserController {
     }
   };
 
+  // User logout
   logoutController = async (req, res, next) => {
     try {
       const token = checkCookiesAndToken(req);
@@ -99,6 +111,7 @@ class UserController {
     }
   };
 
+  // Get token from cookies
   getToken = async (req, res, next) => {
     try {
       const token = checkCookiesAndToken(req);
@@ -108,6 +121,7 @@ class UserController {
     }
   };
 
+  // Get current user details
   currentUser = async (req, res, next) => {
     try {
       const token = checkCookiesAndToken(req);
@@ -121,6 +135,7 @@ class UserController {
     }
   };
 
+  // Update user details
   updateUser = async (req, res, next) => {
     const userId = req.user.id;
     const { username, email, profilePic } = req.body;
@@ -158,6 +173,7 @@ class UserController {
     }
   };
 
+  // Upload profile picture
   uploadProfilePic = async (req, res, next) => {
     if (!req.user || !req.user.id) {
       return next(new UnauthorizedError("User not logged in"));
@@ -186,6 +202,7 @@ class UserController {
     }
   };
 
+  // Initiate password reset
   initiatePasswordReset = async (req, res, next) => {
     const { email } = req.body;
 
@@ -211,6 +228,7 @@ class UserController {
     }
   };
 
+  // Reset password
   resetPassword = async (req, res, next) => {
     const { token, newPassword } = req.body;
 
@@ -250,6 +268,7 @@ class UserController {
     }
   };
 
+  // Delete user
   deleteUser = async (req, res, next) => {
     const userId = req.user.id;
 
@@ -257,7 +276,7 @@ class UserController {
       const user = await findUserById(userId);
       const currentUsername = user.username;
 
-      //User input asking for username as a confirmation
+      // User input asking for username as a confirmation
       const { username } = req.body;
 
       if (currentUsername !== username) {

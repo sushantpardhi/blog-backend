@@ -1,5 +1,7 @@
 import blogModel from "../models/blogModel.js";
 import { sendJsonResponse } from "../utils/commonUtils.js";
+
+// Comment-related utility functions
 import {
   validateUser,
   validateBlogAndComment,
@@ -7,6 +9,7 @@ import {
 } from "../utils/commentUtils.js";
 
 class CommentController {
+  // Add a new comment
   addComment = async (req, res, next) => {
     try {
       validateUser(req, next);
@@ -34,6 +37,7 @@ class CommentController {
     }
   };
 
+  // Update an existing comment
   updateComment = async (req, res, next) => {
     try {
       validateUser(req, next);
@@ -58,6 +62,7 @@ class CommentController {
     }
   };
 
+  // Like a comment
   likeComment = async (req, res, next) => {
     try {
       validateUser(req, next);
@@ -78,6 +83,7 @@ class CommentController {
     }
   };
 
+  // Unlike a comment
   unlikeComment = async (req, res, next) => {
     try {
       validateUser(req, next);
@@ -98,6 +104,7 @@ class CommentController {
     }
   };
 
+  // Reply to a comment
   replyToComment = async (req, res, next) => {
     try {
       validateUser(req, next);
