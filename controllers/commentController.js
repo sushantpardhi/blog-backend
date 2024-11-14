@@ -1,28 +1,17 @@
 import blogModel from "../models/blogModel.js";
+import { sendJsonResponse } from "../utils/commonUtils.js";
 import {
-  BadRequestError,
-  NotFoundError,
-  UnauthorizedError,
-  ForbiddenError,
-} from "../utils/customError.js";
+  validateUser,
+  validateBlogAndComment,
+  validateCommentOwnership,
+} from "../utils/commentUtils.js";
 
 class CommentController {
   addComment = async (req, res, next) => {
     try {
-      if (!req.user) {
-        return next(new UnauthorizedError("Unauthorized. Please log in."));
-      }
+      validateUser(req, next);
 
-      const blogId = req.params.blogId;
-      if (!blogId) {
-        return next(new BadRequestError("Blog ID is required"));
-      }
-
-      const blog = await blogModel.findById(blogId);
-
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
+      const { blog } = await validateBlogAndComment(req, next);
 
       const newComment = {
         commenter: req.user.id,
@@ -37,9 +26,9 @@ class CommentController {
         "-password"
       );
 
-      res
-        .status(201)
-        .json({ message: "Comment added successfully", blog: populatedBlog });
+      sendJsonResponse(res, 201, "Comment added successfully", {
+        blog: populatedBlog,
+      });
     } catch (error) {
       next(error);
     }
@@ -47,39 +36,11 @@ class CommentController {
 
   updateComment = async (req, res, next) => {
     try {
-      if (!req.user) {
-        return next(new UnauthorizedError("Unauthorized. Please log in."));
-      }
+      validateUser(req, next);
 
-      const blogId = req.params.blogId;
-      if (!blogId) {
-        return next(new BadRequestError("Blog ID is required"));
-      }
+      const { blog, comment } = await validateBlogAndComment(req, next);
 
-      const commentId = req.params.commentId;
-      if (!commentId) {
-        return next(new BadRequestError("Comment ID is required"));
-      }
-
-      const blog = await blogModel.findById(blogId);
-
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
-
-      const comment = blog.comments.id(commentId);
-
-      if (!comment) {
-        return next(new NotFoundError("Comment not found"));
-      }
-
-      if (comment.commenter.toString() !== req.user.id) {
-        return next(
-          new ForbiddenError(
-            "Access denied. You are not the author of this comment."
-          )
-        );
-      }
+      validateCommentOwnership(comment, req.user.id, next);
 
       comment.content = req.body.comment;
       await blog.save();
@@ -89,9 +50,9 @@ class CommentController {
         "-password"
       );
 
-      res
-        .status(200)
-        .json({ message: "Comment updated successfully", blog: populatedBlog });
+      sendJsonResponse(res, 200, "Comment updated successfully", {
+        blog: populatedBlog,
+      });
     } catch (error) {
       next(error);
     }
@@ -99,31 +60,19 @@ class CommentController {
 
   likeComment = async (req, res, next) => {
     try {
-      if (!req.user) {
-        return next(new UnauthorizedError("Unauthorized. Please log in."));
-      }
+      validateUser(req, next);
 
-      const blogId = req.params.blogId;
-      const commentId = req.params.commentId;
+      const { blog } = await validateBlogAndComment(req, next);
 
-      if (!blogId || !commentId) {
-        return next(new BadRequestError("Blog ID and Comment ID are required"));
-      }
-
-      const blog = await blogModel.findById(blogId);
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
-
-      await blog.likeComment(commentId, req.user.id);
+      await blog.likeComment(req.params.commentId, req.user.id);
 
       const populatedBlog = await blog.populate(
         "comments.commenter",
         "-password"
       );
-      res
-        .status(200)
-        .json({ message: "Comment liked successfully", blog: populatedBlog });
+      sendJsonResponse(res, 200, "Comment liked successfully", {
+        blog: populatedBlog,
+      });
     } catch (error) {
       next(error);
     }
@@ -131,31 +80,19 @@ class CommentController {
 
   unlikeComment = async (req, res, next) => {
     try {
-      if (!req.user) {
-        return next(new UnauthorizedError("Unauthorized. Please log in."));
-      }
+      validateUser(req, next);
 
-      const blogId = req.params.blogId;
-      const commentId = req.params.commentId;
+      const { blog } = await validateBlogAndComment(req, next);
 
-      if (!blogId || !commentId) {
-        return next(new BadRequestError("Blog ID and Comment ID are required"));
-      }
-
-      const blog = await blogModel.findById(blogId);
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
-
-      await blog.unlikeComment(commentId, req.user.id);
+      await blog.unlikeComment(req.params.commentId, req.user.id);
 
       const populatedBlog = await blog.populate(
         "comments.commenter",
         "-password"
       );
-      res
-        .status(200)
-        .json({ message: "Comment unliked successfully", blog: populatedBlog });
+      sendJsonResponse(res, 200, "Comment unliked successfully", {
+        blog: populatedBlog,
+      });
     } catch (error) {
       next(error);
     }
@@ -163,37 +100,25 @@ class CommentController {
 
   replyToComment = async (req, res, next) => {
     try {
-      if (!req.user) {
-        return next(new UnauthorizedError("Unauthorized. Please log in."));
-      }
+      validateUser(req, next);
 
-      const { blogId, parentId } = req.params;
-      if (!blogId || !parentId) {
-        return next(
-          new BadRequestError("Blog ID and Parent Comment ID are required")
-        );
-      }
-
-      const blog = await blogModel.findById(blogId);
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
+      const { blog } = await validateBlogAndComment(req, next);
 
       const reply = {
         commenter: req.user.id,
         content: req.body.comment,
       };
 
-      await blog.replyToComment(parentId, reply);
+      await blog.replyToComment(req.params.parentId, reply);
 
       const populatedBlog = await blog.populate(
         "comments.commenter comments.replies.commenter",
         "-password"
       );
 
-      res
-        .status(201)
-        .json({ message: "Reply added successfully", blog: populatedBlog });
+      sendJsonResponse(res, 201, "Reply added successfully", {
+        blog: populatedBlog,
+      });
     } catch (error) {
       next(error);
     }

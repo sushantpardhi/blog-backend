@@ -39,4 +39,12 @@ process.on("unhandledRejection", (reason, promise) => {
   process.exit(1);
 });
 
+const gracefulShutdown = () => {
+  console.log("Shutting down gracefully...");
+  process.exit();
+};
+
+process.on("SIGTERM", gracefulShutdown);
+process.on("SIGINT", gracefulShutdown);
+
 export default serverConnection;

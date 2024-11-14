@@ -32,3 +32,5 @@ app.use("/api/v1/blog", blogRoutes);
 app.use(errorHandler);
 
 serverConnection(app);
+
+export default app;

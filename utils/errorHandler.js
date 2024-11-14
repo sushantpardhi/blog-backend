@@ -31,6 +31,13 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  if (err.code && err.code === 11000) {
+    return res.status(409).json({
+      status: "fail",
+      message: "Duplicate key error. Resource already exists.",
+    });
+  }
+
   res.status(500).json({
     status: "error",
     message: err.message || "Internal server error",

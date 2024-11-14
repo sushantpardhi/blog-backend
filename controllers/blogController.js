@@ -1,26 +1,26 @@
 import blogModel from "../models/blogModel.js";
 import mongoose from "mongoose";
+import { sendJsonResponse } from "../utils/commonUtils.js";
 import {
-  BadRequestError,
-  NotFoundError,
-  UnauthorizedError,
-  ForbiddenError,
-} from "../utils/customError.js";
+  findBlogById,
+  checkIfAuthor,
+  checkUserAuthentication,
+  validateQueryParam,
+} from "../utils/blogUtils.js";
 
 class BlogController {
   // Publish a new blog
   publishBlog = async (req, res, next) => {
     try {
-      if (!req.user) {
-        return next(new UnauthorizedError("Unauthorized. Please log in."));
-      }
+      checkUserAuthentication(req.user, next);
+
       const newBlog = new blogModel({
         ...req.body,
         author: req.user.id,
       });
       let savedBlog = await newBlog.save();
       savedBlog = await savedBlog.populate("author", "-password");
-      res.status(201).json({ message: "Blog uploaded to db", blog: savedBlog });
+      sendJsonResponse(res, 201, "Blog uploaded to db", { blog: savedBlog });
     } catch (error) {
       next(error);
     }
@@ -43,7 +43,7 @@ class BlogController {
       const totalBlogs = await blogModel.countDocuments({});
       const totalPages = Math.ceil(totalBlogs / limit);
 
-      res.status(200).json({
+      sendJsonResponse(res, 200, "All blogs retrieved successfully", {
         blogs,
         pagination: {
           totalBlogs,
@@ -59,22 +59,11 @@ class BlogController {
 
   // Get a blog by ID
   getBlogById = async (req, res, next) => {
-    const blogId = req.params.id;
     try {
-      if (!blogId) {
-        return next(new BadRequestError("Blog ID is required"));
+      const blog = await findBlogById(req.params.id, next);
+      if (blog) {
+        sendJsonResponse(res, 200, "Blog retrieved successfully", { blog });
       }
-
-      const blog = await blogModel
-        .findById(blogId)
-        .populate("author", "-password")
-        .populate("comments.commenter", "-password");
-
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
-
-      res.status(200).json({ blog });
     } catch (error) {
       next(error);
     }
@@ -82,48 +71,34 @@ class BlogController {
 
   // Update a blog
   updateBlog = async (req, res, next) => {
-    const blogId = req.params.blogId;
     try {
-      if (!blogId) {
-        return next(new BadRequestError("Blog ID is required"));
-      }
+      const blog = await findBlogById(req.params.blogId, next);
+      if (blog) {
+        checkIfAuthor(blog, req.user.id, next);
 
-      const blog = await blogModel.findById(blogId);
+        const { likes, author, tags, ...otherUpdates } = req.body;
 
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
+        if (likes !== undefined) {
+          return next(new BadRequestError("Cannot update likes directly"));
+        }
 
-      if (blog.author.toString() !== req.user.id) {
-        return next(
-          new ForbiddenError(
-            "Access denied. You are not the author of this post."
+        if (author !== undefined) {
+          return next(new BadRequestError("Cannot update author directly"));
+        }
+
+        const updatedBlog = await blogModel
+          .findByIdAndUpdate(
+            req.params.blogId,
+            { $set: { ...otherUpdates }, tags },
+            { new: true }
           )
-        );
+          .populate("author", "-password")
+          .populate("comments.commenter", "-password");
+
+        sendJsonResponse(res, 200, "Blog updated successfully", {
+          updatedBlog,
+        });
       }
-
-      const { likes, author, tags, ...otherUpdates } = req.body;
-
-      if (likes !== undefined) {
-        return next(new BadRequestError("Cannot update likes directly"));
-      }
-
-      if (author !== undefined) {
-        return next(new BadRequestError("Cannot update author directly"));
-      }
-
-      const updatedBlog = await blogModel
-        .findByIdAndUpdate(
-          blogId,
-          { $set: { ...otherUpdates }, tags },
-          { new: true }
-        )
-        .populate("author", "-password")
-        .populate("comments.commenter", "-password");
-
-      res
-        .status(200)
-        .json({ message: "Blog updated successfully", updatedBlog });
     } catch (error) {
       next(error);
     }
@@ -131,24 +106,14 @@ class BlogController {
 
   // Like a blog
   likeBlog = async (req, res, next) => {
-    const blogId = req.params.blogId;
-    const userId = req.user.id;
     try {
-      if (!blogId) {
-        return next(new BadRequestError("Blog ID is required"));
+      const blog = await findBlogById(req.params.blogId, next);
+      if (blog) {
+        await blog.like(req.user.id);
+        sendJsonResponse(res, 200, "Blog liked successfully", {
+          likes: blog.likes,
+        });
       }
-
-      const blog = await blogModel.findById(blogId);
-
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
-
-      await blog.like(userId);
-
-      res
-        .status(200)
-        .json({ message: "Blog liked successfully", likes: blog.likes });
     } catch (error) {
       next(error);
     }
@@ -156,24 +121,14 @@ class BlogController {
 
   // Unlike a blog
   unlikeBlog = async (req, res, next) => {
-    const blogId = req.params.blogId;
-    const userId = req.user.id;
     try {
-      if (!blogId) {
-        return next(new BadRequestError("Blog ID is required"));
+      const blog = await findBlogById(req.params.blogId, next);
+      if (blog) {
+        await blog.unlike(req.user.id);
+        sendJsonResponse(res, 200, "Blog unliked successfully", {
+          likes: blog.likes,
+        });
       }
-
-      const blog = await blogModel.findById(blogId);
-
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
-
-      await blog.unlike(userId);
-
-      res
-        .status(200)
-        .json({ message: "Blog unliked successfully", likes: blog.likes });
     } catch (error) {
       next(error);
     }
@@ -181,27 +136,13 @@ class BlogController {
 
   // Delete a blog
   deleteBlog = async (req, res, next) => {
-    const blogId = req.query.id;
     try {
-      if (!blogId) {
-        return next(new BadRequestError("Blog ID is required"));
+      const blog = await findBlogById(req.query.id, next);
+      if (blog) {
+        checkIfAuthor(blog, req.user.id, next);
+        await blogModel.findByIdAndDelete(req.query.id);
+        sendJsonResponse(res, 200, "Blog deleted successfully!");
       }
-
-      const blog = await blogModel.findById(blogId);
-
-      if (!blog) {
-        return next(new NotFoundError("Blog not found"));
-      }
-
-      if (blog.author.toString() !== req.user.id.toString()) {
-        return next(
-          new ForbiddenError("You are not authorized to delete this blog")
-        );
-      }
-
-      await blogModel.findByIdAndDelete(blogId);
-
-      res.status(200).json({ message: "Blog deleted successfully!" });
     } catch (error) {
       next(error);
     }
@@ -209,21 +150,17 @@ class BlogController {
 
   // Search blogs by title, content, or tags
   searchBlog = async (req, res, next) => {
-    const query = req.query.q;
-
-    if (!query) {
-      return next(new BadRequestError("Search query is required"));
-    }
-
     try {
+      validateQueryParam(req.query.q, "Search query", next);
+
       const blogs = await blogModel.find({
         $or: [
-          { title: { $regex: query, $options: "i" } },
-          { content: { $regex: query, $options: "i" } },
+          { title: { $regex: req.query.q, $options: "i" } },
+          { content: { $regex: req.query.q, $options: "i" } },
         ],
       });
 
-      res.status(200).json({ blogs });
+      sendJsonResponse(res, 200, "Blogs retrieved successfully", { blogs });
     } catch (error) {
       next(error);
     }
@@ -231,18 +168,16 @@ class BlogController {
 
   // Filter blogs by tags
   filterBlogByTags = async (req, res, next) => {
-    const tags = req.query.tags;
-
-    if (!tags) {
-      return next(new BadRequestError("Tags query is required"));
-    }
-
     try {
+      validateQueryParam(req.query.tags, "Tags query", next);
+
       const blogs = await blogModel.find({
-        tags: { $in: tags.split(",") },
+        tags: { $in: req.query.tags.split(",") },
       });
 
-      res.status(200).json({ blogs });
+      sendJsonResponse(res, 200, "Blogs filtered by tags successfully", {
+        blogs,
+      });
     } catch (error) {
       next(error);
     }
@@ -250,22 +185,20 @@ class BlogController {
 
   // Filter blogs by author
   filterBlogByAuthor = async (req, res, next) => {
-    const author = req.query.author;
-
-    if (!author) {
-      return next(new BadRequestError("Author query is required"));
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(author)) {
-      return next(new BadRequestError("Invalid author ID"));
-    }
-
     try {
+      validateQueryParam(req.query.author, "Author query", next);
+
+      if (!mongoose.Types.ObjectId.isValid(req.query.author)) {
+        return next(new BadRequestError("Invalid author ID"));
+      }
+
       const blogs = await blogModel.find({
-        author: new mongoose.Types.ObjectId(author),
+        author: new mongoose.Types.ObjectId(req.query.author),
       });
 
-      res.status(200).json({ blogs });
+      sendJsonResponse(res, 200, "Blogs filtered by author successfully", {
+        blogs,
+      });
     } catch (error) {
       next(error);
     }
