@@ -1,4 +1,5 @@
 import blogModel from "../models/blogModel.js";
+import commentModel from "../models/commentModel.js";
 import {
   BadRequestError,
   NotFoundError,
@@ -25,7 +26,7 @@ export const validateBlogAndComment = async (req, next) => {
 
   const commentId = req.params.commentId;
   if (commentId) {
-    const comment = blog.comments.id(commentId);
+    const comment = await commentModel.findById(commentId);
     if (!comment) {
       return next(new NotFoundError("Comment not found"));
     }
@@ -36,7 +37,11 @@ export const validateBlogAndComment = async (req, next) => {
 };
 
 export const validateCommentOwnership = (comment, userId, next) => {
-  if (comment.commenter.toString() !== userId) {
+  if (
+    !comment ||
+    !comment.commenter ||
+    comment.commenter.toString() !== userId
+  ) {
     return next(
       new ForbiddenError(
         "Access denied. You are not the author of this comment."

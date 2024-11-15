@@ -25,13 +25,6 @@ router.put(
   comment.unlikeComment
 );
 
-// Nested Comment Routes
-router.post(
-  "/:blogId/comment/:parentId/reply",
-  verifyToken,
-  comment.replyToComment
-);
-
 //Blog Routes
 router.get("/search", blog.searchBlog);
 router.get("/filter/tags", blog.filterBlogByTags);

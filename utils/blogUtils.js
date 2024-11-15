@@ -14,7 +14,7 @@ export const findBlogById = async (blogId, next) => {
   const blog = await blogModel
     .findById(blogId)
     .populate("author", "-password")
-    .populate("comments.commenter", "-password");
+    .populate("comments");
 
   if (!blog) {
     return next(new NotFoundError("Blog not found"));
@@ -24,7 +24,7 @@ export const findBlogById = async (blogId, next) => {
 };
 
 export const checkIfAuthor = (blog, userId, next) => {
-  if (blog.author.toString() !== userId) {
+  if (blog.author._id.toString() !== userId) {
     return next(
       new ForbiddenError("Access denied. You are not the author of this post.")
     );

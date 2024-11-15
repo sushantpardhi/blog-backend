@@ -40,7 +40,7 @@ class BlogController {
         .skip(skip)
         .limit(limit)
         .populate("author", "-password")
-        .populate("comments.commenter", "-password");
+        .populate("comments");
 
       const totalBlogs = await blogModel.countDocuments({});
       const totalPages = Math.ceil(totalBlogs / limit);
@@ -71,7 +71,6 @@ class BlogController {
     }
   };
 
-  // Update a blog
   updateBlog = async (req, res, next) => {
     try {
       const blog = await findBlogById(req.params.blogId, next);
@@ -155,12 +154,15 @@ class BlogController {
     try {
       validateQueryParam(req.query.q, "Search query", next);
 
-      const blogs = await blogModel.find({
-        $or: [
-          { title: { $regex: req.query.q, $options: "i" } },
-          { content: { $regex: req.query.q, $options: "i" } },
-        ],
-      });
+      const blogs = await blogModel
+        .find({
+          $or: [
+            { title: { $regex: req.query.q, $options: "i" } },
+            { content: { $regex: req.query.q, $options: "i" } },
+          ],
+        })
+        .populate("author", "-password")
+        .populate("comments");
 
       sendJsonResponse(res, 200, "Blogs retrieved successfully", { blogs });
     } catch (error) {
@@ -173,9 +175,12 @@ class BlogController {
     try {
       validateQueryParam(req.query.tags, "Tags query", next);
 
-      const blogs = await blogModel.find({
-        tags: { $in: req.query.tags.split(",") },
-      });
+      const blogs = await blogModel
+        .find({
+          tags: { $in: req.query.tags.split(",") },
+        })
+        .populate("author", "-password")
+        .populate("comments");
 
       sendJsonResponse(res, 200, "Blogs filtered by tags successfully", {
         blogs,
@@ -194,9 +199,12 @@ class BlogController {
         return next(new BadRequestError("Invalid author ID"));
       }
 
-      const blogs = await blogModel.find({
-        author: new mongoose.Types.ObjectId(req.query.author),
-      });
+      const blogs = await blogModel
+        .find({
+          author: new mongoose.Types.ObjectId(req.query.author),
+        })
+        .populate("author", "-password")
+        .populate("comments");
 
       sendJsonResponse(res, 200, "Blogs filtered by author successfully", {
         blogs,

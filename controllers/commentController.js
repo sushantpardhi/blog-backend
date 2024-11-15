@@ -1,4 +1,5 @@
 import blogModel from "../models/blogModel.js";
+import commentModel from "../models/commentModel.js";
 import { sendJsonResponse } from "../utils/commonUtils.js";
 
 // Comment-related utility functions
@@ -7,6 +8,7 @@ import {
   validateBlogAndComment,
   validateCommentOwnership,
 } from "../utils/commentUtils.js";
+import { NotFoundError } from "../utils/customError.js";
 
 class CommentController {
   // Add a new comment
@@ -16,18 +18,16 @@ class CommentController {
 
       const { blog } = await validateBlogAndComment(req, next);
 
-      const newComment = {
+      const newComment = await commentModel.create({
+        blog: blog._id,
         commenter: req.user.id,
         content: req.body.comment,
-      };
+      });
 
-      blog.comments.push(newComment);
+      blog.comments.push(newComment._id);
       await blog.save();
 
-      const populatedBlog = await blog.populate(
-        "comments.commenter",
-        "-password"
-      );
+      const populatedBlog = await blog.populate("comments");
 
       sendJsonResponse(res, 201, "Comment added successfully", {
         blog: populatedBlog,
@@ -42,17 +42,19 @@ class CommentController {
     try {
       validateUser(req, next);
 
-      const { blog, comment } = await validateBlogAndComment(req, next);
+      const { blog } = await validateBlogAndComment(req, next);
+
+      const comment = await commentModel.findById(req.params.commentId);
+      if (!comment) {
+        return next(new NotFoundError("Comment not found"));
+      }
 
       validateCommentOwnership(comment, req.user.id, next);
 
       comment.content = req.body.comment;
-      await blog.save();
+      await comment.save();
 
-      const populatedBlog = await blog.populate(
-        "comments.commenter",
-        "-password"
-      );
+      const populatedBlog = await blog.populate("comments");
 
       sendJsonResponse(res, 200, "Comment updated successfully", {
         blog: populatedBlog,
@@ -69,12 +71,14 @@ class CommentController {
 
       const { blog } = await validateBlogAndComment(req, next);
 
-      await blog.likeComment(req.params.commentId, req.user.id);
+      const comment = await commentModel.findById(req.params.commentId);
+      if (comment && !comment.likedBy.includes(req.user.id)) {
+        comment.likes += 1;
+        comment.likedBy.push(req.user.id);
+        await comment.save();
+      }
 
-      const populatedBlog = await blog.populate(
-        "comments.commenter",
-        "-password"
-      );
+      const populatedBlog = await blog.populate("comments");
       sendJsonResponse(res, 200, "Comment liked successfully", {
         blog: populatedBlog,
       });
@@ -90,40 +94,18 @@ class CommentController {
 
       const { blog } = await validateBlogAndComment(req, next);
 
-      await blog.unlikeComment(req.params.commentId, req.user.id);
+      const comment = await commentModel.findById(req.params.commentId);
+      if (comment) {
+        const index = comment.likedBy.indexOf(req.user.id);
+        if (index !== -1) {
+          comment.likes -= 1;
+          comment.likedBy.splice(index, 1);
+          await comment.save();
+        }
+      }
 
-      const populatedBlog = await blog.populate(
-        "comments.commenter",
-        "-password"
-      );
+      const populatedBlog = await blog.populate("comments");
       sendJsonResponse(res, 200, "Comment unliked successfully", {
-        blog: populatedBlog,
-      });
-    } catch (error) {
-      next(error);
-    }
-  };
-
-  // Reply to a comment
-  replyToComment = async (req, res, next) => {
-    try {
-      validateUser(req, next);
-
-      const { blog } = await validateBlogAndComment(req, next);
-
-      const reply = {
-        commenter: req.user.id,
-        content: req.body.comment,
-      };
-
-      await blog.replyToComment(req.params.parentId, reply);
-
-      const populatedBlog = await blog.populate(
-        "comments.commenter comments.replies.commenter",
-        "-password"
-      );
-
-      sendJsonResponse(res, 201, "Reply added successfully", {
         blog: populatedBlog,
       });
     } catch (error) {
