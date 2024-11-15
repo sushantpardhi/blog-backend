@@ -15,8 +15,8 @@ export const generateToken = (obj) =>
 export const storeInCookie = async (res, token) => {
   await res.cookie("token", token, {
     httpOnly: true,
-    secure: true,
     sameSite: "None",
+    maxAge: 24 * 60 * 60 * 1000,
   });
 };
 
