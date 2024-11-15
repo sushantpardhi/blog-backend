@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "nodemon index.js",
-    "test": "vitest --run --reporter verbose"
+    "test": "vitest --run --reporter verbose",
+    "coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +30,10 @@
     "npm": "^10.9.0",
     "redis": "^4.6.14",
     "start": "^5.1.0",
-    "validator": "^13.12.0"
+    "validator": "^13.12.0",
+    "vitest": "^2.1.5"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.5"
   }
 }

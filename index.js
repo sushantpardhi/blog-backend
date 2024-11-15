@@ -4,12 +4,13 @@ dotenv.config();
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import rateLimiter from "./middlewares/rateLimiter.js"; // Import the rate limiter
+import rateLimiter from "./middlewares/rateLimiter.js";
 
 import serverConnection from "./utils/server.js";
 import errorHandler from "./utils/errorHandler.js";
 import userRoutes from "./routes/userRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 
@@ -27,10 +28,9 @@ app.use(rateLimiter);
 // Routes
 app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/blog", blogRoutes);
+app.use("/api/v1/auth", authRoutes);
 
 // Error Handling
 app.use(errorHandler);
 
 serverConnection(app);
-
-export default app;
