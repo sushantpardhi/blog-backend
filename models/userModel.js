@@ -15,6 +15,7 @@ const userSchema = new Schema({
   password: {
     type: String,
     required: true,
+    select: false, // Prevent password from being returned in queries
   },
   profilePic: {
     type: String,
@@ -36,7 +37,7 @@ userSchema.index({ email: 1 });
 
 userSchema.pre("save", async function (next) {
   try {
-    if (this.isModified("password") && !this.isPasswordReset) {
+    if (this.isModified("password")) {
       this.password = await bcrypt.hash(this.password, 10);
     }
     next();

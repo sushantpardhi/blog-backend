@@ -39,9 +39,16 @@ process.on("unhandledRejection", (reason, promise) => {
   process.exit(1);
 });
 
-const gracefulShutdown = () => {
+const gracefulShutdown = async () => {
   console.log("Shutting down gracefully...");
-  process.exit();
+  try {
+    await databaseConnection.close(); // Close database connection
+    console.log("Database connection closed.");
+    process.exit();
+  } catch (err) {
+    console.error("Error during graceful shutdown:", err);
+    process.exit(1);
+  }
 };
 
 process.on("SIGTERM", gracefulShutdown);

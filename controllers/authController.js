@@ -18,7 +18,6 @@ import {
 
 // User-related utility functions
 import {
-  manageTokenCount,
   findUserByUsername,
   findUserByEmail,
   checkCookiesAndToken,
@@ -35,10 +34,11 @@ import {
 
 // Custom error classes
 import { BadRequestError, UnauthorizedError } from "../utils/customError.js";
+import { manageTokenCount } from "../utils/tokenUtils.js";
 
 class AuthController {
   // Register a new user
-  registerController = async (req, res, next) => {
+  static registerController = async (req, res, next) => {
     const { username, email, password } = req.body;
 
     try {
@@ -63,7 +63,7 @@ class AuthController {
   };
 
   // User login
-  loginController = async (req, res, next) => {
+  static loginController = async (req, res, next) => {
     const { username, password } = req.body;
 
     try {
@@ -87,7 +87,7 @@ class AuthController {
   };
 
   // User logout
-  logoutController = async (req, res, next) => {
+  static logoutController = async (req, res, next) => {
     try {
       const token = checkCookiesAndToken(req);
       await new tokenModel({ token }).save();
@@ -100,7 +100,7 @@ class AuthController {
   };
 
   // Get token from cookies
-  getToken = async (req, res, next) => {
+  static getToken = async (req, res, next) => {
     try {
       const token = checkCookiesAndToken(req);
       sendJsonResponse(res, 200, "Token retrieved successfully", { token });
@@ -110,7 +110,7 @@ class AuthController {
   };
 
   // Get current user details
-  currentUser = async (req, res, next) => {
+  static currentUser = async (req, res, next) => {
     try {
       const token = checkCookiesAndToken(req);
       const decoded = verifyToken(token);
@@ -124,7 +124,7 @@ class AuthController {
   };
 
   // Initiate password reset
-  initiatePasswordReset = async (req, res, next) => {
+  static initiatePasswordReset = async (req, res, next) => {
     const { email } = req.body;
 
     try {
@@ -152,7 +152,7 @@ class AuthController {
   };
 
   // Reset password
-  resetPassword = async (req, res, next) => {
+  static resetPassword = async (req, res, next) => {
     const { token, newPassword } = req.body;
 
     try {

@@ -39,6 +39,9 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Add additional logging for unexpected errors
+  logger.error("Unexpected error:", err);
+
   res.status(500).json({
     status: "error",
     message: err.message || "Internal server error",

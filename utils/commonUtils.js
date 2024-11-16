@@ -9,8 +9,17 @@ import {
   ForbiddenError,
 } from "./customError.js";
 
+// Group authentication utilities
 export const generateToken = (obj) =>
   jwt.sign({ id: obj._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
+
+export const verifyToken = (token) => {
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    throw new BadRequestError("Invalid token.");
+  }
+};
 
 export const storeInCookie = (res, token) => {
   res.cookie("token", token, {
@@ -19,6 +28,7 @@ export const storeInCookie = (res, token) => {
   });
 };
 
+// Group validation utilities
 export const validateUsername = (username) => {
   if (!username || username.length < 3) {
     throw new BadRequestError("Username must be at least 3 characters long.");
@@ -43,14 +53,6 @@ export const hashPassword = async (password) => {
 
 export const comparePasswords = async (password, hashedPassword) => {
   return await bcrypt.compare(password, hashedPassword);
-};
-
-export const verifyToken = (token) => {
-  try {
-    return jwt.verify(token, process.env.JWT_SECRET);
-  } catch (error) {
-    throw new BadRequestError("Invalid token.");
-  }
 };
 
 export const sendJsonResponse = (res, status, message, data = {}) => {

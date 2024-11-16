@@ -10,7 +10,7 @@ import {
 
 class BlogController {
   // Publish a new blog
-  publishBlog = async (req, res, next) => {
+  static publishBlog = async (req, res, next) => {
     try {
       checkUserAuthentication(req.user, next);
 
@@ -21,7 +21,7 @@ class BlogController {
         author: req.user.id,
       });
       let savedBlog = await newBlog.save();
-      savedBlog = await savedBlog.populate("author", "-password");
+      savedBlog = await savedBlog.populate(BlogController.populateOptions);
       sendJsonResponse(res, 201, "Blog uploaded to db", { blog: savedBlog });
     } catch (error) {
       next(error);
@@ -29,7 +29,7 @@ class BlogController {
   };
 
   // Get all blogs with pagination
-  getAllBlogs = async (req, res, next) => {
+  static getAllBlogs = async (req, res, next) => {
     const page = parseInt(sanitizeInput(req.query.page)) || 1;
     const limit = parseInt(sanitizeInput(req.query.limit)) || 10;
     const skip = (page - 1) * limit;
@@ -39,8 +39,7 @@ class BlogController {
         .find({})
         .skip(skip)
         .limit(limit)
-        .populate("author", "-password")
-        .populate("comments");
+        .populate(BlogController.populateOptions);
 
       const totalBlogs = await blogModel.countDocuments({});
       const totalPages = Math.ceil(totalBlogs / limit);
@@ -60,11 +59,12 @@ class BlogController {
   };
 
   // Get a blog by ID
-  getBlogById = async (req, res, next) => {
+  static getBlogById = async (req, res, next) => {
     try {
       const blogId = sanitizeInput(req.params.id);
       const blog = await findBlogById(blogId, next);
       if (blog) {
+        await blog.populate(BlogController.populateOptions);
         sendJsonResponse(res, 200, "Blog retrieved successfully", { blog });
       }
     } catch (error) {
@@ -72,7 +72,7 @@ class BlogController {
     }
   };
 
-  updateBlog = async (req, res, next) => {
+  static updateBlog = async (req, res, next) => {
     try {
       const blogId = sanitizeInput(req.params.blogId);
       const blog = await findBlogById(blogId, next);
@@ -96,8 +96,7 @@ class BlogController {
             { $set: { ...otherUpdates }, tags },
             { new: true }
           )
-          .populate("author", "-password")
-          .populate("comments.commenter", "-password");
+          .populate(BlogController.populateOptions);
 
         sendJsonResponse(res, 200, "Blog updated successfully", {
           updatedBlog,
@@ -109,11 +108,12 @@ class BlogController {
   };
 
   // Like a blog
-  likeBlog = async (req, res, next) => {
+  static likeBlog = async (req, res, next) => {
     try {
       const blog = await findBlogById(req.params.blogId, next);
       if (blog) {
         await blog.like(req.user.id);
+        await blog.populate(BlogController.populateOptions);
         sendJsonResponse(res, 200, "Blog liked successfully", {
           likes: blog.likes,
         });
@@ -124,11 +124,12 @@ class BlogController {
   };
 
   // Unlike a blog
-  unlikeBlog = async (req, res, next) => {
+  static unlikeBlog = async (req, res, next) => {
     try {
       const blog = await findBlogById(req.params.blogId, next);
       if (blog) {
         await blog.unlike(req.user.id);
+        await blog.populate(BlogController.populateOptions);
         sendJsonResponse(res, 200, "Blog unliked successfully", {
           likes: blog.likes,
         });
@@ -139,7 +140,7 @@ class BlogController {
   };
 
   // Delete a blog
-  deleteBlog = async (req, res, next) => {
+  static deleteBlog = async (req, res, next) => {
     try {
       const blog = await findBlogById(req.query.id, next);
       if (blog) {
@@ -153,7 +154,7 @@ class BlogController {
   };
 
   // Search blogs by title, content, or tags
-  searchBlog = async (req, res, next) => {
+  static searchBlog = async (req, res, next) => {
     try {
       validateQueryParam(req.query.q, "Search query", next);
 
@@ -164,8 +165,7 @@ class BlogController {
             { content: { $regex: req.query.q, $options: "i" } },
           ],
         })
-        .populate("author", "-password")
-        .populate("comments");
+        .populate(BlogController.populateOptions);
 
       sendJsonResponse(res, 200, "Blogs retrieved successfully", { blogs });
     } catch (error) {
@@ -174,7 +174,7 @@ class BlogController {
   };
 
   // Filter blogs by tags
-  filterBlogByTags = async (req, res, next) => {
+  static filterBlogByTags = async (req, res, next) => {
     try {
       validateQueryParam(req.query.tags, "Tags query", next);
 
@@ -182,8 +182,7 @@ class BlogController {
         .find({
           tags: { $in: req.query.tags.split(",") },
         })
-        .populate("author", "-password")
-        .populate("comments");
+        .populate(BlogController.populateOptions);
 
       sendJsonResponse(res, 200, "Blogs filtered by tags successfully", {
         blogs,
@@ -194,7 +193,7 @@ class BlogController {
   };
 
   // Filter blogs by author
-  filterBlogByAuthor = async (req, res, next) => {
+  static filterBlogByAuthor = async (req, res, next) => {
     try {
       validateQueryParam(req.query.author, "Author query", next);
 
@@ -206,8 +205,7 @@ class BlogController {
         .find({
           author: new mongoose.Types.ObjectId(req.query.author),
         })
-        .populate("author", "-password")
-        .populate("comments");
+        .populate(BlogController.populateOptions);
 
       sendJsonResponse(res, 200, "Blogs filtered by author successfully", {
         blogs,
@@ -216,6 +214,21 @@ class BlogController {
       next(error);
     }
   };
+
+  // Consolidate populate options
+  static populateOptions = [
+    {
+      path: "author",
+      select: "-password",
+    },
+    {
+      path: "comments",
+      populate: {
+        path: "commenter",
+        select: "-password",
+      },
+    },
+  ];
 }
 
 export default BlogController;

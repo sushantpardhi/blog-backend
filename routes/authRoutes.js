@@ -3,14 +3,13 @@ import AuthController from "../controllers/authController.js";
 
 const router = express.Router();
 
-const authController = new AuthController();
-
-router.post("/register", authController.registerController);
-router.post("/login", authController.loginController);
-router.post("/logout", authController.logoutController);
-router.post("/initiatePasswordReset", authController.initiatePasswordReset);
-router.post("/resetPassword", authController.resetPassword);
-router.get("/currentUser", authController.currentUser);
-router.get("/token", authController.getToken);
+// Use static methods directly from AuthController
+router.post("/register", AuthController.registerController);
+router.post("/login", AuthController.loginController);
+router.post("/logout", AuthController.logoutController);
+router.post("/initiatePasswordReset", AuthController.initiatePasswordReset);
+router.post("/resetPassword", AuthController.resetPassword);
+router.get("/currentUser", AuthController.currentUser);
+router.get("/token", AuthController.getToken);
 
 export default router;

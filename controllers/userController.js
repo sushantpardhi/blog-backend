@@ -21,8 +21,10 @@ import {
 } from "../utils/customError.js";
 
 class UserController {
+  static getUserId = (req) => req.user.id;
+
   // Get all users
-  getAllUsers = async (req, res, next) => {
+  static getAllUsers = async (req, res, next) => {
     try {
       const users = await userModel.find();
       sendJsonResponse(res, 200, "All users retrieved successfully", users);
@@ -31,59 +33,62 @@ class UserController {
     }
   };
 
+  static handleUserUpdate = async (userId, updates, res, message) => {
+    const updatedUser = await userModel.findByIdAndUpdate(
+      userId,
+      { $set: updates },
+      { new: true, runValidators: true }
+    );
+    if (!updatedUser) throw new NotFoundError("User not found");
+
+    const { password, ...others } = updatedUser._doc;
+    sendJsonResponse(res, 200, message, { user: others });
+  };
+
   // Update user details
-  updateUser = async (req, res, next) => {
-    const userId = req.user.id;
-    const { username, email, profilePic } = req.body;
+  static updateUser = async (req, res, next) => {
+    const userId = UserController.getUserId(req);
+    let { username, email, profilePic } = req.body;
 
     try {
       const updates = {};
 
       if (username) {
+        username = sanitizeInput(username);
         validateUsername(username);
-        sanitizeInput(username);
         await checkUserExistence(username, null);
         updates.username = username;
       }
       if (email) {
+        email = sanitizeInput(email);
         validateEmail(email);
-        sanitizeInput(email);
         await checkUserExistence(null, email);
         updates.email = email;
       }
       if (profilePic) {
-        sanitizeInput(profilePic);
+        profilePic = sanitizeInput(profilePic);
         updates.profilePic = profilePic;
       }
 
-      const updatedUser = await userModel.findByIdAndUpdate(
+      await UserController.handleUserUpdate(
         userId,
-        { $set: updates },
-        { new: true, runValidators: true }
+        updates,
+        res,
+        "Profile updated successfully"
       );
-      if (!updatedUser) return next(new NotFoundError("User not found"));
-
-      const { password, ...others } = updatedUser._doc;
-      sendJsonResponse(res, 200, "Profile updated successfully", {
-        user: others,
-      });
     } catch (error) {
       next(error);
     }
   };
 
   // Upload profile picture
-  uploadProfilePic = async (req, res, next) => {
-    if (!req.user || !req.user.id) {
-      return next(new UnauthorizedError("User not logged in"));
-    }
-
+  static uploadProfilePic = async (req, res, next) => {
     if (!req.file || !req.file.path) {
       return next(new BadRequestError("No file uploaded"));
     }
 
     try {
-      const userId = req.user.id;
+      const userId = UserController.getUserId(req);
       const profilePicUrl = req.file.path;
 
       const updatedUser = await userModel.findByIdAndUpdate(
@@ -106,16 +111,14 @@ class UserController {
   };
 
   // Delete user
-  deleteUser = async (req, res, next) => {
-    const userId = req.user.id;
+  static deleteUser = async (req, res, next) => {
+    const userId = UserController.getUserId(req);
+    let { username } = req.body;
 
     try {
+      username = sanitizeInput(username);
       const user = await findUserById(userId);
       const currentUsername = user.username;
-
-      // User input asking for username as a confirmation
-      const { username } = req.body;
-      sanitizeInput(username);
 
       if (currentUsername !== username) {
         return next(
@@ -139,4 +142,3 @@ class UserController {
 }
 
 export default UserController;
-

@@ -13,6 +13,7 @@ export const findBlogById = async (blogId, next) => {
 
   const blog = await blogModel
     .findById(blogId)
+    .select("title content author comments") // Select only necessary fields
     .populate("author", "-password")
     .populate("comments");
 

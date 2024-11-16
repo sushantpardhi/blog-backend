@@ -10,7 +10,7 @@ import { NotFoundError } from "../utils/customError.js";
 
 class CommentController {
   // Add a new comment
-  addComment = async (req, res, next) => {
+  static addComment = async (req, res, next) => {
     try {
       validateUser(req, next);
 
@@ -37,17 +37,35 @@ class CommentController {
     }
   };
 
+  // Helper function to get and validate comment
+  static getComment = async (req, next) => {
+    const comment = await commentModel.findById(req.params.commentId);
+    if (!comment) {
+      return next(new NotFoundError("Comment not found"));
+    }
+    return comment;
+  };
+
+  // Helper function to handle like/unlike logic
+  static handleLike = async (comment, userId, isLike) => {
+    const index = comment.likedBy.indexOf(userId);
+    if (isLike && index === -1) {
+      comment.likes += 1;
+      comment.likedBy.push(userId);
+    } else if (!isLike && index !== -1) {
+      comment.likes -= 1;
+      comment.likedBy.splice(index, 1);
+    }
+    await comment.save();
+  };
+
   // Update an existing comment
-  updateComment = async (req, res, next) => {
+  static updateComment = async (req, res, next) => {
     try {
       validateUser(req, next);
 
       const { blog } = await validateBlogAndComment(req, next);
-
-      const comment = await commentModel.findById(req.params.commentId);
-      if (!comment) {
-        return next(new NotFoundError("Comment not found"));
-      }
+      const comment = await CommentController.getComment(req, next);
 
       validateCommentOwnership(comment, req.user.id, next);
 
@@ -55,7 +73,6 @@ class CommentController {
       await comment.save();
 
       const populatedBlog = await blog.populate("comments");
-
       sendJsonResponse(res, 200, "Comment updated successfully", {
         blog: populatedBlog,
       });
@@ -65,18 +82,14 @@ class CommentController {
   };
 
   // Like a comment
-  likeComment = async (req, res, next) => {
+  static likeComment = async (req, res, next) => {
     try {
       validateUser(req, next);
 
       const { blog } = await validateBlogAndComment(req, next);
+      const comment = await CommentController.getComment(req, next);
 
-      const comment = await commentModel.findById(req.params.commentId);
-      if (comment && !comment.likedBy.includes(req.user.id)) {
-        comment.likes += 1;
-        comment.likedBy.push(req.user.id);
-        await comment.save();
-      }
+      await CommentController.handleLike(comment, req.user.id, true);
 
       const populatedBlog = await blog.populate("comments");
       sendJsonResponse(res, 200, "Comment liked successfully", {
@@ -88,21 +101,14 @@ class CommentController {
   };
 
   // Unlike a comment
-  unlikeComment = async (req, res, next) => {
+  static unlikeComment = async (req, res, next) => {
     try {
       validateUser(req, next);
 
       const { blog } = await validateBlogAndComment(req, next);
+      const comment = await CommentController.getComment(req, next);
 
-      const comment = await commentModel.findById(req.params.commentId);
-      if (comment) {
-        const index = comment.likedBy.indexOf(req.user.id);
-        if (index !== -1) {
-          comment.likes -= 1;
-          comment.likedBy.splice(index, 1);
-          await comment.save();
-        }
-      }
+      await CommentController.handleLike(comment, req.user.id, false);
 
       const populatedBlog = await blog.populate("comments");
       sendJsonResponse(res, 200, "Comment unliked successfully", {

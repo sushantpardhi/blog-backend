@@ -18,10 +18,12 @@ export const sendResetTokenEmail = async (email, resetToken) => {
     text: `You requested a password reset. Please use the following token to reset your password: ${resetToken}`,
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) console.error("Error sending email:", error);
-    else console.log("Email sent: " + info.response);
-  });
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent: " + info.response);
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
 };
 
 export const sendPasswordResetConfirmationEmail = async (email) => {
@@ -32,10 +34,12 @@ export const sendPasswordResetConfirmationEmail = async (email) => {
     text: `Your password has been successfully reset.`,
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) console.error("Error sending email:", error);
-    else console.log("Email sent: " + info.response);
-  });
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent: " + info.response);
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
 };
 
 export const sendWelcomeEmail = async (email, username) => {
@@ -46,8 +50,10 @@ export const sendWelcomeEmail = async (email, username) => {
     text: `Hello ${username},\n\nWelcome to our service! We're glad to have you on board.\n\nBest regards,\nThe Blog Team`,
   };
 
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) console.error("Error sending email:", error);
-    else console.log("Email sent: " + info.response);
-  });
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent: " + info.response);
+  } catch (error) {
+    console.error("Error sending email:", error);
+  }
 };

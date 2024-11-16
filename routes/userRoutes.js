@@ -5,16 +5,15 @@ import upload from "../utils/upload.js";
 
 const router = express.Router();
 
-const user = new UserController();
-
-router.get("/", user.getAllUsers);
-router.put("/updateProfile", verifyToken, user.updateUser);
-router.delete("/delete", verifyToken, user.deleteUser);
+// Use static methods directly from UserController
+router.get("/", UserController.getAllUsers);
+router.put("/updateProfile", verifyToken, UserController.updateUser);
+router.delete("/delete", verifyToken, UserController.deleteUser);
 router.post(
   "/uploadProfilePic",
   verifyToken,
   upload.single("profilePic"),
-  user.uploadProfilePic
+  UserController.uploadProfilePic
 );
 
 export default router;
