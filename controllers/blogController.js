@@ -1,8 +1,6 @@
 import blogModel from "../models/blogModel.js";
 import mongoose from "mongoose";
-import { sendJsonResponse } from "../utils/commonUtils.js";
-
-// Blog-related utility functions
+import { sendJsonResponse, sanitizeInput } from "../utils/commonUtils.js";
 import {
   findBlogById,
   checkIfAuthor,
@@ -16,8 +14,10 @@ class BlogController {
     try {
       checkUserAuthentication(req.user, next);
 
+      const sanitizedBody = sanitizeInput(req.body);
+
       const newBlog = new blogModel({
-        ...req.body,
+        ...sanitizedBody,
         author: req.user.id,
       });
       let savedBlog = await newBlog.save();
@@ -30,8 +30,8 @@ class BlogController {
 
   // Get all blogs with pagination
   getAllBlogs = async (req, res, next) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const page = parseInt(sanitizeInput(req.query.page)) || 1;
+    const limit = parseInt(sanitizeInput(req.query.limit)) || 10;
     const skip = (page - 1) * limit;
 
     try {
@@ -62,7 +62,8 @@ class BlogController {
   // Get a blog by ID
   getBlogById = async (req, res, next) => {
     try {
-      const blog = await findBlogById(req.params.id, next);
+      const blogId = sanitizeInput(req.params.id);
+      const blog = await findBlogById(blogId, next);
       if (blog) {
         sendJsonResponse(res, 200, "Blog retrieved successfully", { blog });
       }
@@ -73,11 +74,13 @@ class BlogController {
 
   updateBlog = async (req, res, next) => {
     try {
-      const blog = await findBlogById(req.params.blogId, next);
+      const blogId = sanitizeInput(req.params.blogId);
+      const blog = await findBlogById(blogId, next);
       if (blog) {
         checkIfAuthor(blog, req.user.id, next);
 
-        const { likes, author, tags, ...otherUpdates } = req.body;
+        const sanitizedBody = sanitizeInput(req.body);
+        const { likes, author, tags, ...otherUpdates } = sanitizedBody;
 
         if (likes !== undefined) {
           return next(new BadRequestError("Cannot update likes directly"));

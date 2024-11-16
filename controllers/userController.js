@@ -6,6 +6,7 @@ import {
   validateUsername,
   validateEmail,
   sendJsonResponse,
+  sanitizeInput,
 } from "../utils/commonUtils.js";
 
 // User-related utility functions
@@ -39,15 +40,18 @@ class UserController {
 
       if (username) {
         validateUsername(username);
+        sanitizeInput(username);
         await checkUserExistence(username, null);
         updates.username = username;
       }
       if (email) {
         validateEmail(email);
+        sanitizeInput(email);
         await checkUserExistence(null, email);
         updates.email = email;
       }
       if (profilePic) {
+        sanitizeInput(profilePic);
         updates.profilePic = profilePic;
       }
 
@@ -110,6 +114,7 @@ class UserController {
 
       // User input asking for username as a confirmation
       const { username } = req.body;
+      sanitizeInput(username);
 
       if (currentUsername !== username) {
         return next(

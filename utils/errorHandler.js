@@ -1,7 +1,8 @@
 import { CustomError } from "./customError.js";
+import { logger } from "./logger.js";
 
 const errorHandler = (err, req, res, next) => {
-  console.error(err.stack);
+  logger.error(err.stack);
 
   if (err instanceof CustomError) {
     return res.status(err.statusCode).json({

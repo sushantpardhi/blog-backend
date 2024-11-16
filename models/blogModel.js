@@ -18,8 +18,11 @@ const blogSchema = new Schema(
   { timestamps: true }
 );
 
-// Adding indexes separately
-blogSchema.index({ title: 1, content: 1, author: 1, tags: 1, status: 1 });
+// Adding indexes
+blogSchema.index({ title: 1 });
+blogSchema.index({ author: 1 });
+blogSchema.index({ tags: 1 });
+blogSchema.index({ status: 1 });
 
 blogSchema.methods.like = async function (userId) {
   if (!this.likedBy.includes(userId)) {

@@ -5,6 +5,8 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import rateLimiter from "./middlewares/rateLimiter.js";
+import morgan from "morgan"; // Add morgan import
+import { stream } from "./utils/logger.js"; // Add logger import
 
 import serverConnection from "./utils/server.js";
 import errorHandler from "./utils/errorHandler.js";
@@ -24,6 +26,9 @@ app.use(
   })
 );
 app.use(rateLimiter);
+
+// Add morgan middleware for HTTP request logging
+app.use(morgan("combined", { stream }));
 
 // Routes
 app.use("/api/v1/user", userRoutes);

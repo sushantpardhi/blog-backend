@@ -12,7 +12,10 @@ const commentSchema = new Schema(
   { timestamps: true }
 );
 
-// Register the comment schema as a model
+// Adding indexes
+commentSchema.index({ blog: 1 });
+commentSchema.index({ commenter: 1 });
+
 const Comment = model("Comment", commentSchema);
 
 export default Comment;

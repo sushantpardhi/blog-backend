@@ -13,6 +13,7 @@ import {
   verifyToken,
   hashPassword,
   sendJsonResponse,
+  sanitizeInput,
 } from "../utils/commonUtils.js";
 
 // User-related utility functions
@@ -47,7 +48,9 @@ class AuthController {
 
       await checkUserExistence(username, email);
 
-      const newUser = new userModel(req.body);
+      const sanitizedBody = sanitizeInput(req.body);
+
+      const newUser = new userModel(sanitizedBody);
       await newUser.save();
       const { password: userPassword, ...others } = newUser._doc;
       await sendWelcomeEmail(email, username);
@@ -67,7 +70,9 @@ class AuthController {
       validateUsername(username);
       validatePassword(password);
 
-      const user = await findUserByUsername(username);
+      const sanitizedUsername = sanitizeInput(username);
+
+      const user = await findUserByUsername(sanitizedUsername);
       if (!(await comparePasswords(password, user.password))) {
         return next(new UnauthorizedError("Invalid credentials"));
       }
@@ -125,7 +130,9 @@ class AuthController {
     try {
       validateEmail(email);
 
-      const user = await findUserByEmail(email);
+      const sanitizedEmail = sanitizeInput(email);
+
+      const user = await findUserByEmail(sanitizedEmail);
 
       const resetToken = crypto.randomBytes(3).toString("hex");
       const hashedToken = crypto
@@ -137,7 +144,7 @@ class AuthController {
       user.passwordResetExpires = Date.now() + 3600000;
       await user.save();
 
-      await sendResetTokenEmail(email, resetToken);
+      await sendResetTokenEmail(sanitizedEmail, resetToken);
       sendJsonResponse(res, 200, "Password reset token sent to email");
     } catch (error) {
       next(error);
@@ -154,9 +161,11 @@ class AuthController {
       }
       validatePassword(newPassword);
 
+      const sanitizedToken = sanitizeInput(token);
+
       const hashedToken = crypto
         .createHash("sha256")
-        .update(token)
+        .update(sanitizedToken)
         .digest("hex");
 
       const user = await userModel.findOne({

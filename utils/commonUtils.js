@@ -56,3 +56,18 @@ export const verifyToken = (token) => {
 export const sendJsonResponse = (res, status, message, data = {}) => {
   res.status(status).json({ message, ...data });
 };
+
+export const sanitizeInput = (input) => {
+  if (typeof input === "string") {
+    return validator.escape(input);
+  } else if (Array.isArray(input)) {
+    return input.map(sanitizeInput);
+  } else if (typeof input === "object" && input !== null) {
+    const sanitizedObject = {};
+    for (const key in input) {
+      sanitizedObject[key] = sanitizeInput(input[key]);
+    }
+    return sanitizedObject;
+  }
+  return input;
+};

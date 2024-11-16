@@ -1,8 +1,6 @@
 import blogModel from "../models/blogModel.js";
 import commentModel from "../models/commentModel.js";
-import { sendJsonResponse } from "../utils/commonUtils.js";
-
-// Comment-related utility functions
+import { sendJsonResponse, sanitizeInput } from "../utils/commonUtils.js";
 import {
   validateUser,
   validateBlogAndComment,
@@ -18,10 +16,12 @@ class CommentController {
 
       const { blog } = await validateBlogAndComment(req, next);
 
+      const sanitizedComment = sanitizeInput(req.body.comment);
+
       const newComment = await commentModel.create({
         blog: blog._id,
         commenter: req.user.id,
-        content: req.body.comment,
+        content: sanitizedComment,
       });
 
       blog.comments.push(newComment._id);
@@ -51,7 +51,7 @@ class CommentController {
 
       validateCommentOwnership(comment, req.user.id, next);
 
-      comment.content = req.body.comment;
+      comment.content = sanitizeInput(req.body.comment);
       await comment.save();
 
       const populatedBlog = await blog.populate("comments");
