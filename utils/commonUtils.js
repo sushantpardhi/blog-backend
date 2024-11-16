@@ -12,8 +12,8 @@ import {
 export const generateToken = (obj) =>
   jwt.sign({ id: obj._id }, process.env.JWT_SECRET, { expiresIn: "1h" });
 
-export const storeInCookie = async (res, token) => {
-  await res.cookie("token", token, {
+export const storeInCookie = (res, token) => {
+  res.cookie("token", token, {
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
   });

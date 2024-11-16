@@ -1,15 +1,15 @@
 import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
-import cloudinary from "../cloudinaryConfig.js";
+import cloudinary from "../config/cloudinaryConfig.js";
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: "profile_pics",
-    format: async (req, file) =>
-      ["png", "jpg", "jpeg"].indexOf(file.mimetype.split("/")[1])
-        ? "png"
-        : "jpg",
+    format: async (req, file) => {
+      const format = file.mimetype.split("/")[1];
+      return ["png", "jpg", "jpeg"].includes(format) ? format : "jpg";
+    },
     public_id: (req, file) => Date.now() + "-" + file.originalname,
     transformation: [
       { width: 1000, crop: "scale" },

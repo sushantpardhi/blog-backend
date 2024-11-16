@@ -6,7 +6,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors";
 import rateLimiter from "./middlewares/rateLimiter.js";
 import morgan from "morgan"; // Add morgan import
-import { stream } from "./utils/logger.js"; // Add logger import
+import { stream } from "./config/logger.js"; // Add logger import
 
 import serverConnection from "./utils/server.js";
 import errorHandler from "./utils/errorHandler.js";

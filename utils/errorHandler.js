@@ -1,5 +1,5 @@
 import { CustomError } from "./customError.js";
-import { logger } from "./logger.js";
+import { logger } from "../config/logger.js";
 
 const errorHandler = (err, req, res, next) => {
   logger.error(err.stack);

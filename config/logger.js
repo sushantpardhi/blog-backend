@@ -1,5 +1,5 @@
 import winston from "winston";
-import cloudinary from "../cloudinaryConfig.js";
+import cloudinary from "./cloudinaryConfig.js";
 
 class CloudinaryTransport extends winston.Transport {
   constructor(opts = {}) {

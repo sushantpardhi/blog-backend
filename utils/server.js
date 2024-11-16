@@ -1,4 +1,4 @@
-import databaseConnection from "./database.js";
+import databaseConnection from "../config/database.js";
 
 const serverConnection = async (app) => {
   const port = process.env.PORT || 5000;

@@ -17,6 +17,7 @@ import {
   NotFoundError,
   UnauthorizedError,
   ForbiddenError,
+  BadRequestError,
 } from "../utils/customError.js";
 
 class UserController {
@@ -78,7 +79,7 @@ class UserController {
     }
 
     if (!req.file || !req.file.path) {
-      return next(new Error("No file uploaded"));
+      return next(new BadRequestError("No file uploaded"));
     }
 
     try {
@@ -138,3 +139,4 @@ class UserController {
 }
 
 export default UserController;
+

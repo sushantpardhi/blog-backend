@@ -36,13 +36,19 @@ export const manageTokenCount = async () => {
 };
 
 export const checkUserExistence = async (username, email) => {
-  const usernameExists = await userModel.findOne({ username });
-  if (usernameExists) {
-    throw new ConflictError("Username is already taken");
-  }
-  const emailExists = await userModel.findOne({ email });
-  if (emailExists) {
-    throw new ConflictError("Email is already registered with another account");
+  const query = {};
+  if (username) query.username = username;
+  if (email) query.email = email;
+
+  const userExists = await userModel.findOne(query);
+
+  if (userExists) {
+    if (userExists.username === username) {
+      throw new ConflictError("Username is already taken");
+    }
+    if (userExists.email === email) {
+      throw new ConflictError("Email is already registered with another account");
+    }
   }
 };
 
